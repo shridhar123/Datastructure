@@ -734,8 +734,8 @@ async def perform_reconciliation(config_id: str):
                         all_matched = False
                 
                 # Add columns with proper naming convention
-                row_data[f"Client: {client_col}"] = client_val if not pd.isna(client_val) if client_val is not None else None else None
-                row_data[f"ICyte: {icyte_col}"] = icyte_val if not pd.isna(icyte_val) if icyte_val is not None else None else None
+                row_data[f"Client: {client_col}"] = client_val if client_val is not None and not pd.isna(client_val) else None
+                row_data[f"ICyte: {icyte_col}"] = icyte_val if icyte_val is not None and not pd.isna(icyte_val) else None
                 row_data[f"Δ (Client – ICyte) [{client_col}]"] = variance_value
                 row_data[f"Match? [{client_col}]"] = match_flag
             

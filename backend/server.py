@@ -261,15 +261,19 @@ async def get_excel_sheets(file_id: str):
         for sheet_name in wb.sheetnames:
             sheet = wb[sheet_name]
             columns = []
+            best_row_idx = None
+            max_columns = 0
             
             # Try to find header row (check first 10 rows)
+            # Pick the row with the most non-empty cells as it's likely the header
             for row_idx in range(1, min(11, sheet.max_row + 1)):
-                row_values = [cell.value for cell in sheet[row_idx] if cell.value]
-                # If we find a row with at least 3 non-empty cells, consider it as headers
-                if len(row_values) >= 3:
-                    # Get all non-None values from this row
+                row_values = [cell.value for cell in sheet[row_idx] if cell.value is not None]
+                
+                # If this row has more columns than previous best, consider it
+                if len(row_values) > max_columns and len(row_values) >= 3:
+                    max_columns = len(row_values)
+                    best_row_idx = row_idx
                     columns = [str(cell.value).strip() for cell in sheet[row_idx] if cell.value is not None]
-                    break
             
             sheets_info[sheet_name] = columns
         

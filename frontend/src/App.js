@@ -522,7 +522,9 @@ const ReconcilePage = () => {
         icyte_sheet: icyteSheet,
         client_unique_key: clientUniqueKey,
         icyte_unique_key: icyteUniqueKey,
-        mappings: mappings
+        mappings: mappings,
+        template_id: selectedTemplateId || null,
+        template_name: selectedTemplateId ? templates.find(t => t.id === selectedTemplateId)?.name : null
       });
 
       // Perform reconciliation

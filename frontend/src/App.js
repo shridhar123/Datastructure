@@ -371,6 +371,8 @@ const ReconcilePage = () => {
   const [icyteSheets, setIcyteSheets] = useState({});
   const [clientSheet, setClientSheet] = useState('');
   const [icyteSheet, setIcyteSheet] = useState('');
+  const [clientUniqueKey, setClientUniqueKey] = useState('');
+  const [icyteUniqueKey, setIcyteUniqueKey] = useState('');
   const [mappings, setMappings] = useState([]);
   const [processing, setProcessing] = useState(false);
 

@@ -440,8 +440,8 @@ const ReconcilePage = () => {
   };
 
   const handleReconcile = async () => {
-    if (!clientFileId || !icyteFileId || !clientSheet || !icyteSheet || mappings.length === 0) {
-      toast.error('Please complete all configuration fields');
+    if (!clientFileId || !icyteFileId || !clientSheet || !icyteSheet || !clientUniqueKey || !icyteUniqueKey || mappings.length === 0) {
+      toast.error('Please complete all configuration fields including unique keys');
       return;
     }
 
@@ -453,6 +453,8 @@ const ReconcilePage = () => {
         icyte_file_id: icyteFileId,
         client_sheet: clientSheet,
         icyte_sheet: icyteSheet,
+        client_unique_key: clientUniqueKey,
+        icyte_unique_key: icyteUniqueKey,
         mappings: mappings
       });
 

@@ -651,41 +651,100 @@ async def perform_reconciliation(config_id: str):
         for item in only_in_icyte:
             exceptions.append(item)
         
-        # Create reconciliation report DataFrame for download
+        # Create reconciliation report DataFrame for download with dynamic columns
         report_data = []
+        warnings = []
         
-        # Get mapping details for dynamic column names
-        first_mapping = config['mappings'][0] if config['mappings'] else None
-        client_col_name = first_mapping['client_column'] if first_mapping else 'Client Value'
-        icyte_col_name = first_mapping['icyte_column'] if first_mapping else 'ICyte Value'
-        
-        # Create dynamic column headers
-        client_header = f"{client_col_name} - Client Value"
-        icyte_header = f"{icyte_col_name} - ICyte Value"
-        
-        for exc in exceptions:
-            if 'status' in exc:
-                # Only in one file
-                report_data.append({
-                    'Unique Key': exc['unique_key'],
-                    'Result': 'Unmatched',
-                    'Status Details': exc['status'],
-                    client_header: '',
-                    icyte_header: '',
-                    'Variance (Client - ICyte)': ''
-                })
+        # Build dynamic column structure for each mapping
+        for key in all_keys:
+            client_row = client_dict.get(key)
+            icyte_row = icyte_dict.get(key)
+            
+            # Base row data
+            row_data = {
+                config['client_unique_key']: key
+            }
+            
+            # Determine row status
+            if client_row is None:
+                row_status = "MISSING_IN_CLIENT"
+            elif icyte_row is None:
+                row_status = "MISSING_IN_ICYTE"
             else:
-                # Value mismatch - determine if matched or unmatched
-                result = 'Matched' if exc['variance'] == '0.00' else 'Unmatched'
+                row_status = "MATCHED"  # Will be updated if variances found
+            
+            # Process each mapping
+            all_matched = True
+            for mapping in config['mappings']:
+                client_col = mapping['client_column']
+                icyte_col = mapping['icyte_column']
+                operation = mapping.get('operation')
                 
-                report_data.append({
-                    'Unique Key': exc['unique_key'],
-                    'Result': result,
-                    'Status Details': f"Comparing {exc['client_column']} vs {exc['icyte_column']}",
-                    client_header: exc['client_value'],
-                    icyte_header: exc['icyte_value'],
-                    'Variance (Client - ICyte)': exc['variance']
-                })
+                # Get values
+                client_val = client_row.get(client_col) if client_row is not None and client_col in client_df.columns else None
+                icyte_val = icyte_row.get(icyte_col) if icyte_row is not None and icyte_col in icyte_df.columns else None
+                
+                # Check for missing columns
+                if client_row is not None and client_col not in client_df.columns:
+                    warnings.append(f"Column '{client_col}' not found in client file")
+                if icyte_row is not None and icyte_col not in icyte_df.columns:
+                    warnings.append(f"Column '{icyte_col}' not found in ICyte file")
+                
+                # Apply operation if specified
+                original_client_val = client_val
+                if operation and client_val is not None and not pd.isna(client_val):
+                    try:
+                        if operation.startswith('multiply:'):
+                            factor = float(operation.split(':')[1])
+                            client_val = float(client_val) * factor
+                        elif operation.startswith('add:'):
+                            addend = float(operation.split(':')[1])
+                            client_val = float(client_val) + addend
+                        elif operation.startswith('subtract:'):
+                            subtrahend = float(operation.split(':')[1])
+                            client_val = float(client_val) - subtrahend
+                    except Exception as e:
+                        logger.warning(f"Operation failed for {key}, {client_col}: {e}")
+                
+                # Calculate variance and match flag
+                variance_value = None
+                match_flag = "Unmatched"
+                
+                if client_val is None or pd.isna(client_val) or icyte_val is None or pd.isna(icyte_val):
+                    variance_value = None
+                    match_flag = "Unmatched"
+                else:
+                    try:
+                        # Keep numeric types
+                        client_str = str(client_val).replace(',', '')
+                        icyte_str = str(icyte_val).replace(',', '')
+                        client_num = float(client_str)
+                        icyte_num = float(icyte_str)
+                        variance_value = client_num - icyte_num
+                        
+                        # Check if matched with tolerance
+                        if abs(variance_value) < 0.01:
+                            match_flag = "Matched"
+                        else:
+                            match_flag = "Unmatched"
+                            all_matched = False
+                    except:
+                        variance_value = "N/A"
+                        match_flag = "Unmatched"
+                        all_matched = False
+                
+                # Add columns with proper naming convention
+                row_data[f"Client: {client_col}"] = client_val if not pd.isna(client_val) if client_val is not None else None else None
+                row_data[f"ICyte: {icyte_col}"] = icyte_val if not pd.isna(icyte_val) if icyte_val is not None else None else None
+                row_data[f"Δ (Client – ICyte) [{client_col}]"] = variance_value
+                row_data[f"Match? [{client_col}]"] = match_flag
+            
+            # Update row status if variances found
+            if client_row is not None and icyte_row is not None:
+                row_status = "MATCHED" if all_matched else "VARIANCE"
+            
+            row_data["RowStatus"] = row_status
+            report_data.append(row_data)
         
         # Save report as Excel
         report_id = str(uuid.uuid4())

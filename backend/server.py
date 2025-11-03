@@ -543,10 +543,14 @@ async def perform_reconciliation(config_id: str):
                     variance_value = "mismatch"
                     try:
                         if not pd.isna(client_val) and not pd.isna(icyte_val):
-                            client_num = float(client_val)
-                            icyte_num = float(icyte_val)
+                            # Handle string values with commas
+                            client_str = str(client_val).replace(',', '')
+                            icyte_str = str(icyte_val).replace(',', '')
+                            client_num = float(client_str)
+                            icyte_num = float(icyte_str)
                             variance_value = f"{client_num - icyte_num:.2f}"
-                    except:
+                    except Exception as e:
+                        logger.warning(f"Variance calculation failed for {key}: {e}")
                         variance_value = "mismatch"
                     
                     # Determine result based on variance

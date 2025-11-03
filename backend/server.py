@@ -542,7 +542,7 @@ async def perform_reconciliation(config_id: str):
                     'Client Value': '',
                     'ICyte Column': '',
                     'ICyte Value': '',
-                    'Variance Type': 'Missing'
+                    'Variance (Client - ICyte)': ''
                 })
             else:
                 # Value mismatch
@@ -554,7 +554,7 @@ async def perform_reconciliation(config_id: str):
                     'Client Value': exc['client_value'],
                     'ICyte Column': exc['icyte_column'],
                     'ICyte Value': exc['icyte_value'],
-                    'Variance Type': exc['variance']
+                    'Variance (Client - ICyte)': exc['variance']
                 })
         
         # Save report as Excel

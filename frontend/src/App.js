@@ -785,10 +785,8 @@ const ReportsPage = () => {
                   <thead>
                     <tr>
                       <th>Unique Key</th>
-                      <th>Status</th>
-                      <th>Client Column</th>
+                      <th>Result</th>
                       <th>Client Value</th>
-                      <th>ICyte Column</th>
                       <th>ICyte Value</th>
                       <th>Variance</th>
                     </tr>
@@ -797,10 +795,12 @@ const ReportsPage = () => {
                     {selectedReport.exceptions.map((exception, index) => (
                       <tr key={index}>
                         <td>{exception.unique_key || exception.row || 'N/A'}</td>
-                        <td>{exception.status || 'Compared'}</td>
-                        <td>{exception.client_column || '-'}</td>
+                        <td>
+                          <span className={exception.result === 'Matched' ? 'result-badge matched' : 'result-badge unmatched'}>
+                            {exception.result || (exception.status === 'Mismatch' ? 'Unmatched' : exception.status || 'Compared')}
+                          </span>
+                        </td>
                         <td>{exception.client_value || '-'}</td>
-                        <td>{exception.icyte_column || '-'}</td>
                         <td>{exception.icyte_value || '-'}</td>
                         <td><span className="variance-badge">{exception.variance || exception.details || 'mismatch'}</span></td>
                       </tr>

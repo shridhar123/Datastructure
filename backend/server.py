@@ -384,7 +384,7 @@ async def configure_reconciliation(config: ReconciliationConfig):
 
 @api_router.post("/perform-reconciliation/{config_id}")
 async def perform_reconciliation(config_id: str):
-    """Perform reconciliation based on saved configuration"""
+    """Perform reconciliation based on saved configuration with unique key matching"""
     try:
         # Get config
         config = await db.reconciliation_configs.find_one({"id": config_id})
@@ -405,29 +405,181 @@ async def perform_reconciliation(config_id: str):
         client_df = pd.read_excel(client_conversion['excel_path'], sheet_name=config['client_sheet'])
         icyte_df = pd.read_excel(icyte_upload['file_path'], sheet_name=config['icyte_sheet'])
         
+        # Get unique keys
+        client_unique_key = config['client_unique_key']
+        icyte_unique_key = config['icyte_unique_key']
+        
+        # Create dictionaries for quick lookup based on unique keys
+        client_dict = {}
+        for idx, row in client_df.iterrows():
+            key = str(row[client_unique_key]) if client_unique_key in client_df.columns else None
+            if key:
+                client_dict[key] = row
+        
+        icyte_dict = {}
+        for idx, row in icyte_df.iterrows():
+            key = str(row[icyte_unique_key]) if icyte_unique_key in icyte_df.columns else None
+            if key:
+                icyte_dict[key] = row
+        
+        # Get all unique keys from both datasets
+        all_keys = set(client_dict.keys()) | set(icyte_dict.keys())
+        
         # Perform reconciliation
         exceptions = []
         matched = 0
         variances = 0
+        only_in_client = []
+        only_in_icyte = []
         
-        min_rows = min(len(client_df), len(icyte_df))
-        
-        for i in range(min_rows):
+        for key in all_keys:
+            client_row = client_dict.get(key)
+            icyte_row = icyte_dict.get(key)
+            
+            # Check if key exists in both files
+            if client_row is None:
+                only_in_icyte.append({
+                    "unique_key": key,
+                    "status": "Only in ICyte Report",
+                    "details": f"{icyte_unique_key}: {key}"
+                })
+                variances += 1
+                continue
+            
+            if icyte_row is None:
+                only_in_client.append({
+                    "unique_key": key,
+                    "status": "Only in Client Report",
+                    "details": f"{client_unique_key}: {key}"
+                })
+                variances += 1
+                continue
+            
+            # Compare mapped columns
             row_exceptions = []
             for mapping in config['mappings']:
                 client_col = mapping['client_column']
                 icyte_col = mapping['icyte_column']
                 operation = mapping.get('operation')
                 
-                client_val = client_df.iloc[i][client_col] if client_col in client_df.columns else None
-                icyte_val = icyte_df.iloc[i][icyte_col] if icyte_col in icyte_df.columns else None
+                client_val = client_row.get(client_col) if client_col in client_df.columns else None
+                icyte_val = icyte_row.get(icyte_col) if icyte_col in icyte_df.columns else None
+                
+                # Skip if both are NaN
+                if pd.isna(client_val) and pd.isna(icyte_val):
+                    continue
                 
                 # Apply operation if specified
-                if operation and client_val is not None:
+                if operation and client_val is not None and not pd.isna(client_val):
                     try:
                         if operation.startswith('multiply:'):
                             factor = float(operation.split(':')[1])
                             client_val = float(client_val) * factor
+                        elif operation.startswith('add:'):
+                            addend = float(operation.split(':')[1])
+                            client_val = float(client_val) + addend
+                        elif operation.startswith('subtract:'):
+                            subtrahend = float(operation.split(':')[1])
+                            client_val = float(client_val) - subtrahend
+                    except Exception as e:
+                        logger.warning(f"Operation failed for {key}: {e}")
+                
+                # Compare values with tolerance for floats
+                values_match = False
+                try:
+                    if pd.isna(client_val) and pd.isna(icyte_val):
+                        values_match = True
+                    elif isinstance(client_val, (int, float)) and isinstance(icyte_val, (int, float)):
+                        # Use tolerance for float comparison
+                        values_match = abs(float(client_val) - float(icyte_val)) < 0.01
+                    else:
+                        values_match = str(client_val).strip() == str(icyte_val).strip()
+                except:
+                    values_match = str(client_val) == str(icyte_val)
+                
+                if not values_match:
+                    row_exceptions.append({
+                        "unique_key": key,
+                        "client_column": client_col,
+                        "icyte_column": icyte_col,
+                        "client_value": str(client_val) if not pd.isna(client_val) else "N/A",
+                        "icyte_value": str(icyte_val) if not pd.isna(icyte_val) else "N/A",
+                        "variance": "mismatch"
+                    })
+                    variances += 1
+            
+            if not row_exceptions:
+                matched += 1
+            else:
+                exceptions.extend(row_exceptions)
+        
+        # Add only_in_client and only_in_icyte to exceptions
+        for item in only_in_client:
+            exceptions.append(item)
+        for item in only_in_icyte:
+            exceptions.append(item)
+        
+        # Create reconciliation report DataFrame for download
+        report_data = []
+        for exc in exceptions:
+            if 'status' in exc:
+                # Only in one file
+                report_data.append({
+                    'Unique Key': exc['unique_key'],
+                    'Status': exc['status'],
+                    'Details': exc['details'],
+                    'Client Column': '',
+                    'Client Value': '',
+                    'ICyte Column': '',
+                    'ICyte Value': '',
+                    'Variance Type': 'Missing'
+                })
+            else:
+                # Value mismatch
+                report_data.append({
+                    'Unique Key': exc['unique_key'],
+                    'Status': 'Mismatch',
+                    'Details': f"Comparing {exc['client_column']} vs {exc['icyte_column']}",
+                    'Client Column': exc['client_column'],
+                    'Client Value': exc['client_value'],
+                    'ICyte Column': exc['icyte_column'],
+                    'ICyte Value': exc['icyte_value'],
+                    'Variance Type': exc['variance']
+                })
+        
+        # Save report as Excel
+        report_id = str(uuid.uuid4())
+        report_excel_path = UPLOADS_DIR / f"reconciliation_report_{report_id}.xlsx"
+        
+        if report_data:
+            report_df = pd.DataFrame(report_data)
+            report_df.to_excel(report_excel_path, index=False)
+        
+        # Create report
+        report = {
+            "id": report_id,
+            "config_id": config_id,
+            "total_records": len(all_keys),
+            "matched_records": matched,
+            "variances": variances,
+            "only_in_client": len(only_in_client),
+            "only_in_icyte": len(only_in_icyte),
+            "exceptions": exceptions[:100],  # Limit to 100 for display
+            "report_file_path": str(report_excel_path),
+            "summary": {
+                "match_rate": f"{(matched / len(all_keys) * 100):.2f}%" if len(all_keys) > 0 else "0%",
+                "variance_rate": f"{(variances / len(all_keys) * 100):.2f}%" if len(all_keys) > 0 else "0%",
+                "total_exceptions": len(exceptions)
+            },
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.reconciliation_reports.insert_one(report)
+        
+        return report
+    except Exception as e:
+        logger.error(f"Reconciliation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
                         elif operation.startswith('add:'):
                             addend = float(operation.split(':')[1])
                             client_val = float(client_val) + addend

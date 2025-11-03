@@ -754,6 +754,24 @@ body {
   text-transform: uppercase;
 }
 
+.result-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.result-badge.matched {
+  background: #3CB371;
+  color: white;
+}
+
+.result-badge.unmatched {
+  background: #FF6B6B;
+  color: white;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .nav-links {

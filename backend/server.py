@@ -386,6 +386,32 @@ async def configure_reconciliation(config: ReconciliationConfig):
 async def perform_reconciliation(config_id: str):
     """Perform reconciliation based on saved configuration with unique key matching"""
     try:
+        # Helper function to detect header row
+        def find_header_row(file_path, sheet_name):
+            """Find the row index where headers are located"""
+            wb = openpyxl.load_workbook(file_path, data_only=False)
+            sheet = wb[sheet_name]
+            
+            best_row_idx = 0  # Default to first row
+            max_columns = 0
+            
+            # Check first 10 rows
+            for row_idx in range(1, min(11, sheet.max_row + 1)):
+                row_cells = [cell for cell in sheet[row_idx] if cell.value is not None]
+                
+                # Filter out cells that are formulas or numbers
+                header_like_cells = []
+                for cell in row_cells:
+                    val = str(cell.value)
+                    if not val.startswith('=') and not val.replace('.','',1).replace('-','',1).isdigit():
+                        header_like_cells.append(cell)
+                
+                if len(header_like_cells) > max_columns and len(header_like_cells) >= 3:
+                    max_columns = len(header_like_cells)
+                    best_row_idx = row_idx - 1  # pandas uses 0-based indexing
+            
+            return best_row_idx
+        
         # Get config
         config = await db.reconciliation_configs.find_one({"id": config_id})
         if not config:
@@ -401,9 +427,15 @@ async def perform_reconciliation(config_id: str):
         if not icyte_upload:
             raise HTTPException(status_code=404, detail="ICyte file not found")
         
-        # Read both Excel files
-        client_df = pd.read_excel(client_conversion['excel_path'], sheet_name=config['client_sheet'])
-        icyte_df = pd.read_excel(icyte_upload['file_path'], sheet_name=config['icyte_sheet'])
+        # Find header rows
+        client_header_row = find_header_row(client_conversion['excel_path'], config['client_sheet'])
+        icyte_header_row = find_header_row(icyte_upload['file_path'], config['icyte_sheet'])
+        
+        logger.info(f"Client header row: {client_header_row}, ICyte header row: {icyte_header_row}")
+        
+        # Read both Excel files with correct header rows
+        client_df = pd.read_excel(client_conversion['excel_path'], sheet_name=config['client_sheet'], header=client_header_row)
+        icyte_df = pd.read_excel(icyte_upload['file_path'], sheet_name=config['icyte_sheet'], header=icyte_header_row)
         
         # Get unique keys
         client_unique_key = config['client_unique_key']

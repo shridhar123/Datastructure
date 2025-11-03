@@ -580,51 +580,24 @@ async def perform_reconciliation(config_id: str):
     except Exception as e:
         logger.error(f"Reconciliation error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-                        elif operation.startswith('add:'):
-                            addend = float(operation.split(':')[1])
-                            client_val = float(client_val) + addend
-                        elif operation.startswith('subtract:'):
-                            subtrahend = float(operation.split(':')[1])
-                            client_val = float(client_val) - subtrahend
-                    except:
-                        pass
-                
-                # Compare values
-                if str(client_val) != str(icyte_val):
-                    row_exceptions.append({
-                        "row": i + 1,
-                        "client_column": client_col,
-                        "icyte_column": icyte_col,
-                        "client_value": str(client_val),
-                        "icyte_value": str(icyte_val),
-                        "variance": "mismatch"
-                    })
-                    variances += 1
-            
-            if not row_exceptions:
-                matched += 1
-            else:
-                exceptions.extend(row_exceptions)
+
+@api_router.get("/download-reconciliation-report/{report_id}")
+async def download_reconciliation_report(report_id: str):
+    """Download reconciliation report as Excel"""
+    try:
+        report = await db.reconciliation_reports.find_one({"id": report_id})
+        if not report:
+            raise HTTPException(status_code=404, detail="Report not found")
         
-        # Create report
-        report_id = str(uuid.uuid4())
-        report = {
-            "id": report_id,
-            "config_id": config_id,
-            "total_records": min_rows,
-            "matched_records": matched,
-            "variances": variances,
-            "exceptions": exceptions,
-            "summary": {
-                "match_rate": f"{(matched / min_rows * 100):.2f}%" if min_rows > 0 else "0%",
-                "variance_rate": f"{(variances / (min_rows * len(config['mappings'])) * 100):.2f}%" if min_rows > 0 else "0%"
-            },
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
-        
-        await db.reconciliation_reports.insert_one(report)
-        
-        return report
+        report_file_path = report.get('report_file_path')
+        if report_file_path and os.path.exists(report_file_path):
+            return FileResponse(
+                report_file_path,
+                filename=f"reconciliation_report_{report_id}.xlsx",
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        else:
+            raise HTTPException(status_code=404, detail="Report file not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

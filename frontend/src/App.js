@@ -786,8 +786,8 @@ const ReportsPage = () => {
                     <tr>
                       <th>Unique Key</th>
                       <th>Result</th>
-                      <th>Client Value</th>
-                      <th>ICyte Value</th>
+                      <th>{selectedReport.column_headers?.client_header || 'Client Value'}</th>
+                      <th>{selectedReport.column_headers?.icyte_header || 'ICyte Value'}</th>
                       <th>Variance</th>
                     </tr>
                   </thead>

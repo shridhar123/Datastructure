@@ -561,9 +561,17 @@ async def perform_reconciliation(config_id: str):
         report_id = str(uuid.uuid4())
         report_excel_path = UPLOADS_DIR / f"reconciliation_report_{report_id}.xlsx"
         
+        # Always create Excel file, even if empty
         if report_data:
             report_df = pd.DataFrame(report_data)
-            report_df.to_excel(report_excel_path, index=False)
+        else:
+            # Create empty report with headers
+            report_df = pd.DataFrame(columns=[
+                'Unique Key', 'Status', 'Details', 'Client Column', 
+                'Client Value', 'ICyte Column', 'ICyte Value', 'Variance Type'
+            ])
+        
+        report_df.to_excel(report_excel_path, index=False)
         
         # Create report
         report = {

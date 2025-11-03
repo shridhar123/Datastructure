@@ -572,29 +572,37 @@ async def perform_reconciliation(config_id: str):
         
         # Create reconciliation report DataFrame for download
         report_data = []
+        
+        # Get mapping details for dynamic column names
+        first_mapping = config['mappings'][0] if config['mappings'] else None
+        client_col_name = first_mapping['client_column'] if first_mapping else 'Client Value'
+        icyte_col_name = first_mapping['icyte_column'] if first_mapping else 'ICyte Value'
+        
+        # Create dynamic column headers
+        client_header = f"{client_col_name} - Client Value"
+        icyte_header = f"{icyte_col_name} - ICyte Value"
+        
         for exc in exceptions:
             if 'status' in exc:
                 # Only in one file
                 report_data.append({
                     'Unique Key': exc['unique_key'],
-                    'Status': exc['status'],
-                    'Details': exc['details'],
-                    'Client Column': '',
-                    'Client Value': '',
-                    'ICyte Column': '',
-                    'ICyte Value': '',
+                    'Result': 'Unmatched',
+                    'Status Details': exc['status'],
+                    client_header: '',
+                    icyte_header: '',
                     'Variance (Client - ICyte)': ''
                 })
             else:
-                # Value mismatch
+                # Value mismatch - determine if matched or unmatched
+                result = 'Matched' if exc['variance'] == '0.00' else 'Unmatched'
+                
                 report_data.append({
                     'Unique Key': exc['unique_key'],
-                    'Status': 'Mismatch',
-                    'Details': f"Comparing {exc['client_column']} vs {exc['icyte_column']}",
-                    'Client Column': exc['client_column'],
-                    'Client Value': exc['client_value'],
-                    'ICyte Column': exc['icyte_column'],
-                    'ICyte Value': exc['icyte_value'],
+                    'Result': result,
+                    'Status Details': f"Comparing {exc['client_column']} vs {exc['icyte_column']}",
+                    client_header: exc['client_value'],
+                    icyte_header: exc['icyte_value'],
                     'Variance (Client - ICyte)': exc['variance']
                 })
         

@@ -648,9 +648,27 @@ const ReconcilePage = () => {
         <div className="mappings-section">
           <div className="mappings-header">
             <h3>Column Mappings</h3>
-            <Button onClick={addMapping} size="sm" data-testid="add-mapping-btn">
-              <Plus size={16} /> Add Mapping
-            </Button>
+            <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center'}}>
+              <Select value={selectedTemplateId} onValueChange={(val) => { setSelectedTemplateId(val); handleLoadTemplate(val); }}>
+                <SelectTrigger style={{width: '250px'}} data-testid="template-select">
+                  <SelectValue placeholder="Load Template..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">-- No Template --</SelectItem>
+                  {templates.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={() => setShowSaveModal(true)} size="sm" variant="outline" data-testid="save-template-btn" disabled={mappings.length === 0}>
+                Save as Template
+              </Button>
+              <Button onClick={addMapping} size="sm" data-testid="add-mapping-btn">
+                <Plus size={16} /> Add Mapping
+              </Button>
+            </div>
           </div>
 
           {mappings.map((mapping, index) => (

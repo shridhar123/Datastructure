@@ -218,13 +218,21 @@ async def download_excel(file_id: str):
         conversion = await db.conversions.find_one({"id": file_id})
         if conversion:
             file_path = conversion['excel_path']
-            return FileResponse(file_path, filename=f"converted_{file_id}.xlsx")
+            return FileResponse(
+                file_path, 
+                filename=f"converted_{file_id}.xlsx",
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
         
         # Check in uploads
         upload = await db.uploads.find_one({"id": file_id})
         if upload and upload.get('file_type') == 'excel':
             file_path = upload['file_path']
-            return FileResponse(file_path, filename=upload['filename'])
+            return FileResponse(
+                file_path, 
+                filename=upload['filename'],
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
         
         raise HTTPException(status_code=404, detail="File not found")
     except Exception as e:

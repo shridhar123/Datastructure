@@ -743,9 +743,14 @@ const ReportsPage = () => {
         </div>
       ) : (
         <div className="report-details" data-testid="report-details">
-          <Button onClick={() => setSelectedReport(null)} className="back-btn" data-testid="back-to-reports-btn">
-            ← Back to Reports
-          </Button>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem'}}>
+            <Button onClick={() => setSelectedReport(null)} className="back-btn" data-testid="back-to-reports-btn">
+              ← Back to Reports
+            </Button>
+            <Button onClick={() => downloadReport(selectedReport.id)} data-testid="download-report-btn">
+              <Download size={16} style={{marginRight: '0.5rem'}} /> Download Report (Excel)
+            </Button>
+          </div>
 
           <Card className="report-overview">
             <h2>Report Summary</h2>
@@ -781,7 +786,8 @@ const ReportsPage = () => {
                 <table>
                   <thead>
                     <tr>
-                      <th>Row</th>
+                      <th>Unique Key</th>
+                      <th>Status</th>
                       <th>Client Column</th>
                       <th>Client Value</th>
                       <th>ICyte Column</th>
@@ -792,12 +798,13 @@ const ReportsPage = () => {
                   <tbody>
                     {selectedReport.exceptions.map((exception, index) => (
                       <tr key={index}>
-                        <td>{exception.row}</td>
-                        <td>{exception.client_column}</td>
-                        <td>{exception.client_value}</td>
-                        <td>{exception.icyte_column}</td>
-                        <td>{exception.icyte_value}</td>
-                        <td><span className="variance-badge">{exception.variance}</span></td>
+                        <td>{exception.unique_key || exception.row || 'N/A'}</td>
+                        <td>{exception.status || 'Compared'}</td>
+                        <td>{exception.client_column || '-'}</td>
+                        <td>{exception.client_value || '-'}</td>
+                        <td>{exception.icyte_column || '-'}</td>
+                        <td>{exception.icyte_value || '-'}</td>
+                        <td><span className="variance-badge">{exception.variance || exception.details || 'mismatch'}</span></td>
                       </tr>
                     ))}
                   </tbody>

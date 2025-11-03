@@ -675,6 +675,35 @@ const ReportsPage = () => {
     }
   };
 
+  const downloadReport = async (reportId) => {
+    try {
+      const response = await axios.get(`${API}/download-reconciliation-report/${reportId}`, {
+        responseType: 'blob'
+      });
+      
+      const blob = new Blob([response.data], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `reconciliation_report_${reportId}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        link.remove();
+      }, 100);
+      
+      toast.success('Report downloaded!');
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download report');
+    }
+  };
+
   return (
     <div className="page-container" data-testid="reports-page">
       <h1 className="page-title">Reconciliation Reports</h1>

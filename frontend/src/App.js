@@ -656,7 +656,7 @@ const ReconcilePage = () => {
                   <SelectValue placeholder="Load Template..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">-- No Template --</SelectItem>
+                  <SelectItem value="none">-- No Template --</SelectItem>
                   {templates.map((template) => (
                     <SelectItem key={template.id} value={template.id}>
                       {template.name}

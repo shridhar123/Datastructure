@@ -266,16 +266,29 @@ const ConvertPage = () => {
       const response = await axios.get(`${API}/download-excel/${fileId}`, {
         responseType: 'blob'
       });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      
+      // Create blob with proper mime type
+      const blob = new Blob([response.data], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `converted_${fileId}.xlsx`);
       document.body.appendChild(link);
       link.click();
-      link.remove();
+      
+      // Cleanup
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        link.remove();
+      }, 100);
+      
       toast.success('Download started!');
     } catch (error) {
-      toast.error('Failed to download file');
+      console.error('Download error:', error);
+      toast.error(`Failed to download file: ${error.message}`);
     }
   };
 

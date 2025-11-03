@@ -592,8 +592,10 @@ async def perform_reconciliation(config_id: str):
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         
-        await db.reconciliation_reports.insert_one(report)
+        # Insert into database
+        await db.reconciliation_reports.insert_one(report.copy())
         
+        # Return report without MongoDB ObjectId
         return report
     except Exception as e:
         logger.error(f"Reconciliation error: {str(e)}")

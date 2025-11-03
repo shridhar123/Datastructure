@@ -750,27 +750,53 @@ async def perform_reconciliation(config_id: str):
         report_id = str(uuid.uuid4())
         report_excel_path = UPLOADS_DIR / f"reconciliation_report_{report_id}.xlsx"
         
-        # Always create Excel file, even if empty
+        # Create Excel file with all data
         if report_data:
             report_df = pd.DataFrame(report_data)
+            # Preserve numeric types in Excel
+            report_df.to_excel(report_excel_path, index=False)
         else:
-            # Create empty report with dynamic headers
-            report_df = pd.DataFrame(columns=[
-                'Unique Key', 'Result', 'Status Details', 
-                client_header, icyte_header, 'Variance (Client - ICyte)'
-            ])
+            # Create empty report
+            report_df = pd.DataFrame()
+            report_df.to_excel(report_excel_path, index=False)
         
-        report_df.to_excel(report_excel_path, index=False)
+        # Count actual matched and variance records
+        matched_count = len([r for r in report_data if r.get("RowStatus") == "MATCHED"])
+        variance_count = len([r for r in report_data if r.get("RowStatus") == "VARIANCE"])
+        
+        # Build column headers info for frontend
+        column_headers = {
+            "unique_key": config['client_unique_key'],
+            "mappings": []
+        }
+        for mapping in config['mappings']:
+            column_headers["mappings"].append({
+                "client_label": f"Client: {mapping['client_column']}",
+                "icyte_label": f"ICyte: {mapping['icyte_column']}",
+                "variance_label": f"Δ (Client – ICyte) [{mapping['client_column']}]",
+                "match_label": f"Match? [{mapping['client_column']}]"
+            })
         
         # Create report
         report = {
             "id": report_id,
             "config_id": config_id,
             "total_records": len(all_keys),
-            "matched_records": matched,
-            "variances": variances,
+            "matched_records": matched_count,
+            "variances": variance_count,
             "only_in_client": len(only_in_client),
             "only_in_icyte": len(only_in_icyte),
+            "exceptions": report_data[:100],  # Limit to 100 for display
+            "report_file_path": str(report_excel_path),
+            "column_headers": column_headers,
+            "warnings": list(set(warnings)),  # Remove duplicates
+            "summary": {
+                "match_rate": f"{(matched_count / len(all_keys) * 100):.2f}%" if len(all_keys) > 0 else "0%",
+                "variance_rate": f"{(variance_count / len(all_keys) * 100):.2f}%" if len(all_keys) > 0 else "0%",
+                "total_exceptions": len(report_data)
+            },
+            "created_at": datetime.now(timezone.utc).isoformat()
+        },
             "exceptions": exceptions[:100],  # Limit to 100 for display
             "report_file_path": str(report_excel_path),
             "column_headers": {

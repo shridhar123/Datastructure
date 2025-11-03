@@ -614,10 +614,10 @@ async def perform_reconciliation(config_id: str):
         if report_data:
             report_df = pd.DataFrame(report_data)
         else:
-            # Create empty report with headers
+            # Create empty report with dynamic headers
             report_df = pd.DataFrame(columns=[
-                'Unique Key', 'Status', 'Details', 'Client Column', 
-                'Client Value', 'ICyte Column', 'ICyte Value', 'Variance (Client - ICyte)'
+                'Unique Key', 'Result', 'Status Details', 
+                client_header, icyte_header, 'Variance (Client - ICyte)'
             ])
         
         report_df.to_excel(report_excel_path, index=False)

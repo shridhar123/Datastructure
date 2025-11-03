@@ -385,7 +385,6 @@ const ReconcilePage = () => {
     fetchConversions();
     fetchUploads();
     fetchTemplates();
-    fetchUploads();
   }, []);
 
   const fetchConversions = async () => {
@@ -404,6 +403,67 @@ const ReconcilePage = () => {
       setUploads(excelUploads);
     } catch (error) {
       console.error('Error fetching uploads:', error);
+    }
+  };
+
+  const fetchTemplates = async () => {
+    try {
+      const response = await axios.get(`${API}/mapping-templates`);
+      setTemplates(response.data.templates || []);
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+    }
+  };
+
+  const handleSaveTemplate = async (name, description) => {
+    if (mappings.length === 0) {
+      toast.error('Please add at least one mapping');
+      return;
+    }
+
+    try {
+      await axios.post(`${API}/mapping-templates`, {
+        name,
+        description,
+        mappings
+      });
+      toast.success('Template saved successfully!');
+      setShowSaveModal(false);
+      fetchTemplates();
+    } catch (error) {
+      toast.error('Failed to save template');
+    }
+  };
+
+  const handleLoadTemplate = async (templateId) => {
+    if (!templateId) {
+      setMappings([]);
+      return;
+    }
+
+    try {
+      const response = await axios.get(`${API}/mapping-template/${templateId}`);
+      setMappings(response.data.mappings || []);
+      toast.success('Template loaded!');
+    } catch (error) {
+      toast.error('Failed to load template');
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId) => {
+    if (!window.confirm('Are you sure you want to delete this template?')) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${API}/mapping-template/${templateId}`);
+      toast.success('Template deleted');
+      fetchTemplates();
+      if (selectedTemplateId === templateId) {
+        setSelectedTemplateId('');
+      }
+    } catch (error) {
+      toast.error('Failed to delete template');
     }
   };
 

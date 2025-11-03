@@ -262,15 +262,23 @@ const ConvertPage = () => {
   };
 
   const handleDownload = async (fileId) => {
+    console.log('Download clicked for file ID:', fileId);
+    toast.info('Starting download...');
+    
     try {
+      console.log('Making request to:', `${API}/download-excel/${fileId}`);
       const response = await axios.get(`${API}/download-excel/${fileId}`, {
         responseType: 'blob'
       });
+      
+      console.log('Response received:', response.status, response.headers);
       
       // Create blob with proper mime type
       const blob = new Blob([response.data], { 
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
       });
+      
+      console.log('Blob created, size:', blob.size);
       
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -278,6 +286,8 @@ const ConvertPage = () => {
       link.setAttribute('download', `converted_${fileId}.xlsx`);
       document.body.appendChild(link);
       link.click();
+      
+      console.log('Download triggered');
       
       // Cleanup
       setTimeout(() => {
@@ -288,6 +298,7 @@ const ConvertPage = () => {
       toast.success('Download started!');
     } catch (error) {
       console.error('Download error:', error);
+      console.error('Error details:', error.response);
       toast.error(`Failed to download file: ${error.message}`);
     }
   };

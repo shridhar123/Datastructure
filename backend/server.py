@@ -68,6 +68,8 @@ class ReconciliationConfig(BaseModel):
     icyte_file_id: str
     client_sheet: str
     icyte_sheet: str
+    client_unique_key: str  # Column to use as unique identifier in client file
+    icyte_unique_key: str   # Column to use as unique identifier in ICyte file
     mappings: List[ColumnMapping]
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 

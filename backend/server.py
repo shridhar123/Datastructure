@@ -549,8 +549,12 @@ async def perform_reconciliation(config_id: str):
                     except:
                         variance_value = "mismatch"
                     
+                    # Determine result based on variance
+                    result = "Matched" if variance_value == "0.00" else "Unmatched"
+                    
                     row_exceptions.append({
                         "unique_key": key,
+                        "result": result,
                         "client_column": client_col,
                         "icyte_column": icyte_col,
                         "client_value": str(client_val) if not pd.isna(client_val) else "N/A",

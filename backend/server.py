@@ -159,7 +159,7 @@ async def convert_pdf(request: ConversionRequest):
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
             session_id=f"conversion_{request.file_id}",
-            system_message="You are an expert data extraction assistant. Extract data from PDF and convert it to Excel format based on user requirements."
+            system_message="You are an expert data extraction assistant. Extract data from PDF and provide it in a clean, structured JSON format suitable for Excel conversion."
         ).with_model("gemini", "gemini-2.0-flash")
         
         # Create file attachment
@@ -168,10 +168,20 @@ async def convert_pdf(request: ConversionRequest):
             mime_type="application/pdf"
         )
         
-        # Create message with prompt
+        # Create enhanced prompt for better extraction
         full_prompt = f"""{request.prompt}
 
-Please extract the data from this PDF and provide it in a structured format (JSON) that can be converted to Excel. Include all relevant columns and rows."""
+IMPORTANT: Provide the extracted data in a clean JSON format with the following structure:
+{{
+    "data": [
+        {{"column1": "value1", "column2": "value2", ...}},
+        {{"column1": "value1", "column2": "value2", ...}}
+    ]
+}}
+
+Extract ALL tables, data points, and relevant information from the PDF.
+Make sure column names are clear and descriptive.
+Return ONLY the JSON, no additional text or markdown formatting."""
         
         user_message = UserMessage(
             text=full_prompt,
@@ -186,14 +196,76 @@ Please extract the data from this PDF and provide it in a structured format (JSO
         excel_path = UPLOADS_DIR / f"{conversion_id}_converted.xlsx"
         
         # Try to parse JSON from response
+        df = None
+        json_data = None
+        
+        # Clean response - remove markdown code blocks if present
+        cleaned_response = response.strip()
+        if cleaned_response.startswith('```'):
+            # Remove markdown code blocks
+            lines = cleaned_response.split('\n')
+            cleaned_response = '\n'.join([line for line in lines if not line.strip().startswith('```')])
+        
+        # Try to find and parse JSON
         try:
-            # Simple conversion - create Excel from LLM response
-            df = pd.DataFrame([{"LLM_Response": response}])
-            df.to_excel(excel_path, index=False)
-        except:
-            # If parsing fails, just save the response as text
-            df = pd.DataFrame([{"Extracted_Data": response}])
-            df.to_excel(excel_path, index=False)
+            # Try direct JSON parse
+            json_data = json.loads(cleaned_response)
+            
+            if isinstance(json_data, dict) and 'data' in json_data:
+                # Expected format
+                df = pd.DataFrame(json_data['data'])
+            elif isinstance(json_data, list):
+                # Direct list format
+                df = pd.DataFrame(json_data)
+            elif isinstance(json_data, dict):
+                # Single row or nested structure
+                # Try to flatten it
+                if all(isinstance(v, list) for v in json_data.values()):
+                    # Column-oriented data
+                    df = pd.DataFrame(json_data)
+                else:
+                    # Single row
+                    df = pd.DataFrame([json_data])
+        except json.JSONDecodeError:
+            # If JSON parsing fails, try to extract structured data from text
+            pass
+        
+        # Fallback: Create a table from the text response
+        if df is None or df.empty:
+            # Try to detect if response has tabular structure
+            lines = cleaned_response.split('\n')
+            table_data = []
+            headers = None
+            
+            for line in lines:
+                if not line.strip():
+                    continue
+                # Check if line looks like data (contains separators)
+                if '|' in line or '\t' in line or ',' in line:
+                    # Split by common separators
+                    if '|' in line:
+                        parts = [p.strip() for p in line.split('|') if p.strip()]
+                    elif '\t' in line:
+                        parts = [p.strip() for p in line.split('\t') if p.strip()]
+                    else:
+                        parts = [p.strip() for p in line.split(',')]
+                    
+                    if len(parts) >= 2:  # At least 2 columns
+                        if headers is None:
+                            headers = parts
+                        else:
+                            table_data.append(parts)
+            
+            if headers and table_data:
+                df = pd.DataFrame(table_data, columns=headers)
+            else:
+                # Last resort: save as simple text output
+                df = pd.DataFrame({
+                    "Extracted_Data": [cleaned_response]
+                })
+        
+        # Save to Excel
+        df.to_excel(excel_path, index=False)
         
         # Save conversion to DB
         conversion_doc = {
@@ -208,6 +280,7 @@ Please extract the data from this PDF and provide it in a structured format (JSO
         
         return ConversionResponse(**conversion_doc)
     except Exception as e:
+        logger.error(f"Conversion error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/download-excel/{file_id}")

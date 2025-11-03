@@ -605,7 +605,7 @@ async def perform_reconciliation(config_id: str):
 async def download_reconciliation_report(report_id: str):
     """Download reconciliation report as Excel"""
     try:
-        report = await db.reconciliation_reports.find_one({"id": report_id})
+        report = await db.reconciliation_reports.find_one({"id": report_id}, {"_id": 0})
         if not report:
             raise HTTPException(status_code=404, detail="Report not found")
         

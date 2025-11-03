@@ -436,7 +436,7 @@ const ReconcilePage = () => {
   };
 
   const handleLoadTemplate = async (templateId) => {
-    if (!templateId) {
+    if (!templateId || templateId === 'none') {
       setMappings([]);
       return;
     }

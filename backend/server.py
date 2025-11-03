@@ -671,15 +671,21 @@ async def download_reconciliation_report(report_id: str):
             raise HTTPException(status_code=404, detail="Report not found")
         
         report_file_path = report.get('report_file_path')
-        if report_file_path and os.path.exists(report_file_path):
+        if not report_file_path:
+            raise HTTPException(status_code=404, detail="This report was created before the download feature was added. Please create a new reconciliation to generate a downloadable report.")
+        
+        if os.path.exists(report_file_path):
             return FileResponse(
                 report_file_path,
                 filename=f"reconciliation_report_{report_id}.xlsx",
                 media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
         else:
-            raise HTTPException(status_code=404, detail="Report file not found")
+            raise HTTPException(status_code=404, detail="Report file not found on server")
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error(f"Download error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/reconciliation-reports")

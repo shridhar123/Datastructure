@@ -441,16 +441,25 @@ async def perform_reconciliation(config_id: str):
         client_unique_key = config['client_unique_key']
         icyte_unique_key = config['icyte_unique_key']
         
+        # Helper function to normalize NDC format (remove dashes, convert to string)
+        def normalize_key(value):
+            if pd.isna(value):
+                return None
+            # Convert to string and remove dashes and spaces
+            return str(value).replace('-', '').replace(' ', '').strip().upper()
+        
         # Create dictionaries for quick lookup based on unique keys
         client_dict = {}
         for idx, row in client_df.iterrows():
-            key = str(row[client_unique_key]) if client_unique_key in client_df.columns else None
+            key_val = row.get(client_unique_key) if client_unique_key in client_df.columns else None
+            key = normalize_key(key_val)
             if key:
                 client_dict[key] = row
         
         icyte_dict = {}
         for idx, row in icyte_df.iterrows():
-            key = str(row[icyte_unique_key]) if icyte_unique_key in icyte_df.columns else None
+            key_val = row.get(icyte_unique_key) if icyte_unique_key in icyte_df.columns else None
+            key = normalize_key(key_val)
             if key:
                 icyte_dict[key] = row
         

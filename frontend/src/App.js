@@ -504,6 +504,24 @@ const ReconcilePage = () => {
                   ))}
                 </SelectContent>
               </Select>
+
+              {clientSheet && clientSheets[clientSheet]?.length > 0 && (
+                <>
+                  <h4>Select Unique Key Column</h4>
+                  <Select value={clientUniqueKey} onValueChange={setClientUniqueKey}>
+                    <SelectTrigger data-testid="client-unique-key-select">
+                      <SelectValue placeholder="Select unique key (e.g., NDC11)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clientSheets[clientSheet].map((col) => (
+                        <SelectItem key={col} value={col}>
+                          {col}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
             </>
           )}
         </div>
@@ -538,6 +556,26 @@ const ReconcilePage = () => {
                   ))}
                 </SelectContent>
               </Select>
+
+              {icyteSheet && icyteSheets[icyteSheet]?.length > 0 && (
+                <>
+                  <h4>Select Unique Key Column</h4>
+                  <Select value={icyteUniqueKey} onValueChange={setIcyteUniqueKey}>
+                    <SelectTrigger data-testid="icyte-unique-key-select">
+                      <SelectValue placeholder="Select unique key (e.g., NDC11)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {icyteSheets[icyteSheet].map((col) => (
+                        <SelectItem key={col} value={col}>
+                          {col}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
+            </>
+          )}
             </>
           )}
         </div>

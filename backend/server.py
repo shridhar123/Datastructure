@@ -498,13 +498,23 @@ async def perform_reconciliation(config_id: str):
                     values_match = str(client_val) == str(icyte_val)
                 
                 if not values_match:
+                    # Calculate numeric variance (Client - ICyte)
+                    variance_value = "mismatch"
+                    try:
+                        if not pd.isna(client_val) and not pd.isna(icyte_val):
+                            client_num = float(client_val)
+                            icyte_num = float(icyte_val)
+                            variance_value = f"{client_num - icyte_num:.2f}"
+                    except:
+                        variance_value = "mismatch"
+                    
                     row_exceptions.append({
                         "unique_key": key,
                         "client_column": client_col,
                         "icyte_column": icyte_col,
                         "client_value": str(client_val) if not pd.isna(client_val) else "N/A",
                         "icyte_value": str(icyte_val) if not pd.isna(icyte_val) else "N/A",
-                        "variance": "mismatch"
+                        "variance": variance_value
                     })
                     variances += 1
             

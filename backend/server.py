@@ -382,6 +382,69 @@ async def get_excel_sheets(file_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Mapping Template Endpoints
+@api_router.post("/mapping-templates", response_model=MappingTemplate)
+async def create_mapping_template(template: MappingTemplate):
+    """Create a new mapping template"""
+    try:
+        template_dict = template.model_dump()
+        await db.mapping_templates.insert_one(template_dict)
+        return template
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/mapping-templates")
+async def get_mapping_templates():
+    """Get all mapping templates"""
+    try:
+        templates = await db.mapping_templates.find({}, {"_id": 0}).to_list(100)
+        return {"templates": templates}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/mapping-template/{template_id}")
+async def get_mapping_template(template_id: str):
+    """Get a specific mapping template"""
+    try:
+        template = await db.mapping_templates.find_one({"id": template_id}, {"_id": 0})
+        if not template:
+            raise HTTPException(status_code=404, detail="Template not found")
+        return template
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.put("/mapping-template/{template_id}", response_model=MappingTemplate)
+async def update_mapping_template(template_id: str, template: MappingTemplate):
+    """Update an existing mapping template"""
+    try:
+        template_dict = template.model_dump()
+        template_dict['updated_at'] = datetime.now(timezone.utc).isoformat()
+        
+        result = await db.mapping_templates.update_one(
+            {"id": template_id},
+            {"$set": template_dict}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Template not found")
+        
+        return template
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/mapping-template/{template_id}")
+async def delete_mapping_template(template_id: str):
+    """Delete a mapping template"""
+    try:
+        result = await db.mapping_templates.delete_one({"id": template_id})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Template not found")
+        return {"message": "Template deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.post("/configure-reconciliation", response_model=ReconciliationConfig)
 async def configure_reconciliation(config: ReconciliationConfig):
     """Save reconciliation configuration"""

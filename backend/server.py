@@ -568,7 +568,7 @@ async def perform_reconciliation(config_id: str):
             # Create empty report with headers
             report_df = pd.DataFrame(columns=[
                 'Unique Key', 'Status', 'Details', 'Client Column', 
-                'Client Value', 'ICyte Column', 'ICyte Value', 'Variance Type'
+                'Client Value', 'ICyte Column', 'ICyte Value', 'Variance (Client - ICyte)'
             ])
         
         report_df.to_excel(report_excel_path, index=False)

@@ -62,6 +62,14 @@ class ColumnMapping(BaseModel):
     icyte_column: str
     operation: Optional[str] = None  # e.g., "multiply:2", "add:10", "subtract:5"
 
+class MappingTemplate(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    description: Optional[str] = None
+    mappings: List[ColumnMapping]
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
 class ReconciliationConfig(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     client_file_id: str
@@ -71,6 +79,8 @@ class ReconciliationConfig(BaseModel):
     client_unique_key: str  # Column to use as unique identifier in client file
     icyte_unique_key: str   # Column to use as unique identifier in ICyte file
     mappings: List[ColumnMapping]
+    template_id: Optional[str] = None  # Reference to the template used
+    template_name: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class ReconciliationReport(BaseModel):

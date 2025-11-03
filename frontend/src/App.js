@@ -728,6 +728,58 @@ const ReconcilePage = () => {
           {processing ? 'Processing...' : 'Perform Reconciliation'}
         </Button>
       </Card>
+
+      {/* Template Save Modal */}
+      {showSaveModal && (
+        <div className="modal-overlay" data-testid="template-save-modal">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>Save Mapping Template</h3>
+              <button className="modal-close" onClick={() => setShowSaveModal(false)} data-testid="close-modal-btn">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Template Name *</label>
+                <Input
+                  id="template-name"
+                  placeholder="e.g., Standard AMP Reconciliation"
+                  data-testid="template-name-input"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>Description (Optional)</label>
+                <Textarea
+                  id="template-description"
+                  placeholder="Describe this template..."
+                  rows={3}
+                  data-testid="template-description-input"
+                />
+              </div>
+              
+              <div className="template-preview">
+                <p><strong>Mappings to save:</strong> {mappings.length} column mapping(s)</p>
+              </div>
+            </div>
+            
+            <div className="modal-footer">
+              <Button variant="outline" onClick={() => setShowSaveModal(false)} data-testid="cancel-save-btn">
+                Cancel
+              </Button>
+              <Button onClick={() => {
+                const name = document.getElementById('template-name').value;
+                const description = document.getElementById('template-description').value;
+                handleSaveTemplate(name, description);
+              }} data-testid="save-template-confirm-btn">
+                Save Template
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

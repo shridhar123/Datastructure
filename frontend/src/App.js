@@ -375,9 +375,16 @@ const ReconcilePage = () => {
   const [icyteUniqueKey, setIcyteUniqueKey] = useState('');
   const [mappings, setMappings] = useState([]);
   const [processing, setProcessing] = useState(false);
+  
+  // Template management
+  const [templates, setTemplates] = useState([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [showSaveModal, setShowSaveModal] = useState(false);
 
   useEffect(() => {
     fetchConversions();
+    fetchUploads();
+    fetchTemplates();
     fetchUploads();
   }, []);
 

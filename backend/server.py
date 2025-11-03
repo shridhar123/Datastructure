@@ -641,6 +641,10 @@ async def perform_reconciliation(config_id: str):
             "only_in_icyte": len(only_in_icyte),
             "exceptions": exceptions[:100],  # Limit to 100 for display
             "report_file_path": str(report_excel_path),
+            "column_headers": {
+                "client_header": client_header,
+                "icyte_header": icyte_header
+            },
             "summary": {
                 "match_rate": f"{(matched / len(all_keys) * 100):.2f}%" if len(all_keys) > 0 else "0%",
                 "variance_rate": f"{(variances / len(all_keys) * 100):.2f}%" if len(all_keys) > 0 else "0%",

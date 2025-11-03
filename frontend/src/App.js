@@ -576,8 +576,6 @@ const ReconcilePage = () => {
               )}
             </>
           )}
-            </>
-          )}
         </div>
 
         <div className="mappings-section">

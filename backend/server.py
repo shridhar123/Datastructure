@@ -255,7 +255,7 @@ async def get_excel_sheets(file_id: str):
                 raise HTTPException(status_code=404, detail="File not found")
         
         # Read Excel file
-        wb = openpyxl.load_workbook(file_path)
+        wb = openpyxl.load_workbook(file_path, data_only=False)
         sheets_info = {}
         
         for sheet_name in wb.sheetnames:
@@ -265,15 +265,31 @@ async def get_excel_sheets(file_id: str):
             max_columns = 0
             
             # Try to find header row (check first 10 rows)
-            # Pick the row with the most non-empty cells as it's likely the header
+            # Pick the row with the most non-empty, non-formula cells
             for row_idx in range(1, min(11, sheet.max_row + 1)):
-                row_values = [cell.value for cell in sheet[row_idx] if cell.value is not None]
+                row_cells = [cell for cell in sheet[row_idx] if cell.value is not None]
                 
-                # If this row has more columns than previous best, consider it
-                if len(row_values) > max_columns and len(row_values) >= 3:
-                    max_columns = len(row_values)
+                # Filter out cells that are formulas or numbers (headers are usually text)
+                header_like_cells = []
+                for cell in row_cells:
+                    val = str(cell.value)
+                    # Skip if it's a formula or looks like pure numeric data
+                    if not val.startswith('=') and not val.replace('.','',1).replace('-','',1).isdigit():
+                        header_like_cells.append(cell)
+                
+                # If this row has more header-like columns, consider it
+                if len(header_like_cells) > max_columns and len(header_like_cells) >= 3:
+                    max_columns = len(header_like_cells)
                     best_row_idx = row_idx
-                    columns = [str(cell.value).strip() for cell in sheet[row_idx] if cell.value is not None]
+                    columns = [str(cell.value).strip() for cell in row_cells]
+            
+            # Fallback: if no good headers found, just use first row with data
+            if not columns:
+                for row_idx in range(1, min(11, sheet.max_row + 1)):
+                    row_values = [cell.value for cell in sheet[row_idx] if cell.value is not None]
+                    if len(row_values) >= 1:
+                        columns = [str(cell.value).strip() for cell in sheet[row_idx] if cell.value is not None]
+                        break
             
             sheets_info[sheet_name] = columns
         

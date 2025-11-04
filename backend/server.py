@@ -164,6 +164,8 @@ async def upload_files(files: List[UploadFile] = File(...), file_source: str = F
             uploaded_files.append(clean_doc)
         
         return {"uploaded_files": uploaded_files, "count": len(uploaded_files)}
+    except HTTPException:
+        raise  # Re-raise HTTPExceptions as-is
     except Exception as e:
         logger.error(f"Upload error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

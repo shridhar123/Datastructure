@@ -901,8 +901,8 @@ async def perform_reconciliation(config_id: str):
             column_headers["mappings"].append({
                 "client_label": f"Client: {mapping['client_column']}",
                 "icyte_label": f"ICyte: {mapping['icyte_column']}",
-                "variance_label": f"Δ (Client – ICyte) [{mapping['client_column']}]",
-                "match_label": f"Match? [{mapping['client_column']}]"
+                "variance_label": f"Variance (Client - ICyte) [{mapping['client_column']}]",
+                "match_label": f"Matched [{mapping['client_column']}]"
             })
         
         # Create report

@@ -275,6 +275,11 @@ const UnifiedUploadPage = () => {
                     <span className="file-tag" style={{ background: FILE_TYPE_COLORS[typeTag] + '20', color: FILE_TYPE_COLORS[typeTag] }}>
                       {typeTag}
                     </span>
+                    {isNew && (
+                      <span className="new-badge">
+                        ✨ NEW
+                      </span>
+                    )}
                     <span className={`scan-badge ${scanStatus}`}>
                       {scanStatus === 'passed' ? '✓ Scanned' : '✗ Scan Failed'}
                     </span>

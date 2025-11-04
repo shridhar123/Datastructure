@@ -562,11 +562,31 @@ const ReconcilePage = () => {
               <SelectValue placeholder="Select client file" />
             </SelectTrigger>
             <SelectContent>
-              {conversions.map((conv) => (
-                <SelectItem key={conv.id} value={conv.id}>
-                  Conversion {conv.id.substring(0, 8)}
-                </SelectItem>
-              ))}
+              {conversions.length > 0 && (
+                <>
+                  <SelectItem value="converted-header" disabled style={{fontWeight: 'bold', color: '#666'}}>
+                    Converted Files
+                  </SelectItem>
+                  {conversions.map((conv) => (
+                    <SelectItem key={conv.id} value={conv.id}>
+                      Conversion {conv.id.substring(0, 8)}
+                    </SelectItem>
+                  ))}
+                </>
+              )}
+              {clientFiles.length > 0 && (
+                <>
+                  {conversions.length > 0 && <SelectItem value="divider" disabled>---</SelectItem>}
+                  <SelectItem value="uploaded-header" disabled style={{fontWeight: 'bold', color: '#666'}}>
+                    Uploaded Client Files
+                  </SelectItem>
+                  {clientFiles.map((file) => (
+                    <SelectItem key={file.id} value={file.id}>
+                      {file.filename}
+                    </SelectItem>
+                  ))}
+                </>
+              )}
             </SelectContent>
           </Select>
 

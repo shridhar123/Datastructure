@@ -376,12 +376,32 @@ const ConvertPage = () => {
                 <FileSpreadsheet size={24} />
                 <div className="conversion-info">
                   <p className="conversion-prompt">{conversion.prompt.substring(0, 50)}...</p>
-                  <p className="conversion-status">{conversion.status}</p>
+                  <p className="conversion-status">
+                    <span className={`status-badge ${conversion.status}`}>
+                      {conversion.status}
+                    </span>
+                  </p>
                   <p className="conversion-date">{new Date(conversion.created_at).toLocaleString()}</p>
                 </div>
-                <Button onClick={() => handleDownload(conversion.id)} size="sm" data-testid={`download-btn-${conversion.id}`}>
-                  <Download size={16} /> Download
-                </Button>
+                <div className="conversion-actions">
+                  <Button 
+                    onClick={() => handleDownload(conversion)} 
+                    size="sm" 
+                    disabled={conversion.status !== 'completed'}
+                    data-testid={`download-btn-${conversion.id}`}
+                  >
+                    <Download size={16} /> Download
+                  </Button>
+                  <Button 
+                    onClick={() => openDeleteConversionModal(conversion.id)} 
+                    size="sm" 
+                    variant="ghost"
+                    className="delete-btn"
+                    data-testid={`delete-conversion-btn-${conversion.id}`}
+                  >
+                    <Trash2 size={16} /> Delete
+                  </Button>
+                </div>
               </Card>
             ))}
           </div>

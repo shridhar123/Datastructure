@@ -1008,39 +1008,102 @@ const ReportsPage = () => {
             </div>
           </Card>
 
+          {/* Warnings Section */}
+          {selectedReport.warnings && selectedReport.warnings.length > 0 && (
+            <Card style={{
+              backgroundColor: '#FEF3C7',
+              border: '1px solid #F59E0B',
+              padding: '1rem',
+              marginBottom: '1rem'
+            }}>
+              <h3 style={{ color: '#92400E', marginBottom: '0.5rem' }}>⚠️ Warnings</h3>
+              <ul style={{ margin: 0, paddingLeft: '1.5rem', color: '#92400E' }}>
+                {selectedReport.warnings.map((warning, idx) => (
+                  <li key={idx}>{warning}</li>
+                ))}
+              </ul>
+            </Card>
+          )}
+
           <Card className="exceptions-card">
-            <h3>Exceptions & Variances</h3>
+            <h3>Reconciliation Details ({selectedReport.exceptions.length} records)</h3>
             {selectedReport.exceptions.length === 0 ? (
               <div className="no-exceptions">
                 <Check size={48} />
                 <p>All records matched successfully!</p>
               </div>
             ) : (
-              <div className="exceptions-table">
+              <div className="exceptions-table" style={{ overflowX: 'auto' }}>
                 <table>
                   <thead>
                     <tr>
-                      <th>Unique Key</th>
-                      <th>Result</th>
-                      <th>{selectedReport.column_headers?.client_header || 'Client Value'}</th>
-                      <th>{selectedReport.column_headers?.icyte_header || 'ICyte Value'}</th>
-                      <th>Variance</th>
+                      {/* Unique Key Column */}
+                      <th style={{ position: 'sticky', left: 0, background: 'white', zIndex: 1 }}>
+                        {selectedReport.column_headers?.unique_key || 'Unique Key'}
+                      </th>
+                      
+                      {/* Dynamic columns based on mappings */}
+                      {selectedReport.column_headers?.mappings?.map((mapping, idx) => (
+                        <React.Fragment key={idx}>
+                          <th>{mapping.client_label}</th>
+                          <th>{mapping.icyte_label}</th>
+                          <th>{mapping.variance_label}</th>
+                          <th>{mapping.match_label}</th>
+                        </React.Fragment>
+                      ))}
+                      
+                      {/* Row Status Column */}
+                      <th>RowStatus</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedReport.exceptions.map((exception, index) => (
-                      <tr key={index}>
-                        <td>{exception.unique_key || exception.row || 'N/A'}</td>
-                        <td>
-                          <span className={exception.result === 'Matched' ? 'result-badge matched' : 'result-badge unmatched'}>
-                            {exception.result || (exception.status === 'Mismatch' ? 'Unmatched' : exception.status || 'Compared')}
-                          </span>
-                        </td>
-                        <td>{exception.client_value || '-'}</td>
-                        <td>{exception.icyte_value || '-'}</td>
-                        <td><span className="variance-badge">{exception.variance || exception.details || 'mismatch'}</span></td>
-                      </tr>
-                    ))}
+                    {selectedReport.exceptions.map((record, index) => {
+                      const uniqueKeyValue = record[selectedReport.column_headers?.unique_key] || 'N/A';
+                      const rowStatus = record['RowStatus'] || 'N/A';
+                      
+                      return (
+                        <tr key={index}>
+                          {/* Unique Key */}
+                          <td style={{ position: 'sticky', left: 0, background: 'white', fontWeight: 'bold' }}>
+                            {uniqueKeyValue}
+                          </td>
+                          
+                          {/* Dynamic columns for each mapping */}
+                          {selectedReport.column_headers?.mappings?.map((mapping, idx) => {
+                            const clientVal = record[mapping.client_label];
+                            const icyteVal = record[mapping.icyte_label];
+                            const variance = record[mapping.variance_label];
+                            const matchFlag = record[mapping.match_label];
+                            
+                            return (
+                              <React.Fragment key={idx}>
+                                <td>{clientVal !== null && clientVal !== undefined ? clientVal : '-'}</td>
+                                <td>{icyteVal !== null && icyteVal !== undefined ? icyteVal : '-'}</td>
+                                <td>
+                                  {variance !== null && variance !== undefined ? (
+                                    <span className="variance-badge">
+                                      {typeof variance === 'number' ? variance.toFixed(2) : variance}
+                                    </span>
+                                  ) : '-'}
+                                </td>
+                                <td>
+                                  <span className={matchFlag === 'Matched' ? 'result-badge matched' : 'result-badge unmatched'}>
+                                    {matchFlag}
+                                  </span>
+                                </td>
+                              </React.Fragment>
+                            );
+                          })}
+                          
+                          {/* Row Status */}
+                          <td>
+                            <span className={`status-badge ${rowStatus.toLowerCase().replace('_', '-')}`}>
+                              {rowStatus}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

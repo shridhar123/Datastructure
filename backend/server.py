@@ -974,10 +974,16 @@ async def get_reconciliation_report(report_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/uploads")
-async def get_uploads():
-    """Get all uploads"""
+async def get_uploads(file_source: Optional[str] = None):
+    """Get all uploads, optionally filtered by file_source (Client or ICyte)"""
     try:
-        uploads = await db.uploads.find({}, {"_id": 0}).to_list(100)
+        query = {}
+        if file_source:
+            if file_source not in ["Client", "ICyte"]:
+                raise HTTPException(status_code=400, detail="file_source must be 'Client' or 'ICyte'")
+            query["file_source"] = file_source
+        
+        uploads = await db.uploads.find(query, {"_id": 0}).to_list(100)
         return {"uploads": uploads}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -209,12 +209,10 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Create SeparateUploadPage component with tabs"
-    - "Replace UnifiedUploadPage with SeparateUploadPage in routing"
     - "Update ReconcilePage to fetch and display files by source"
-    - "Add CSS styles for upload tabs"
-  stuck_tasks: []
-  test_all: true
+  stuck_tasks:
+    - "Update ReconcilePage to fetch and display files by source"
+  test_all: false
   test_priority: "high_first"
 
 agent_communication:

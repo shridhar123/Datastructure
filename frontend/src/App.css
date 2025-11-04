@@ -1061,6 +1061,43 @@ body {
   gap: 0.25rem;
 }
 
+.new-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  background: linear-gradient(135deg, #FFD93D 0%, #F6B93B 100%);
+  color: #7D5A00;
+  animation: pulse-badge 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+.file-card.new-upload {
+  border: 2px solid #FFD93D;
+  animation: slide-in 0.5s ease-out;
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .nav-links {

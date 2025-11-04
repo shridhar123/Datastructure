@@ -864,6 +864,203 @@ body {
   border-top: 1px solid #E0F4FF;
 }
 
+/* Unified Upload Page Styles */
+.upload-zone-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  margin-bottom: 2rem;
+}
+
+.upload-drop-zone {
+  border: 2px dashed #A8DADC;
+  border-radius: 12px;
+  padding: 3rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.3s ease;
+  background: #F0F9FF;
+}
+
+.upload-drop-zone.active {
+  border-color: #1A5F7A;
+  background: #E0F4FF;
+  transform: scale(1.02);
+}
+
+.upload-zone-icon {
+  color: #A8DADC;
+}
+
+.upload-drop-zone h3 {
+  font-family: 'Space Grotesk', sans-serif;
+  color: #1A5F7A;
+  margin: 0;
+}
+
+.upload-hint {
+  font-size: 0.875rem;
+  color: #5A6C7D;
+  margin: 0;
+}
+
+.info-banner {
+  background: #FFF3CD;
+  border: 1px solid #FFE69C;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #856404;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #5A6C7D;
+}
+
+.empty-state svg {
+  color: #A8DADC;
+  margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+  font-family: 'Space Grotesk', sans-serif;
+  color: #1A5F7A;
+  margin-bottom: 0.5rem;
+}
+
+.sample-formats {
+  background: #F0F9FF;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+  text-align: left;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.sample-formats h4 {
+  color: #1A5F7A;
+  margin-bottom: 1rem;
+}
+
+.sample-formats ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sample-formats li {
+  padding: 0.5rem 0;
+  color: #2C3E50;
+}
+
+.files-grid {
+  margin-top: 2rem;
+}
+
+.files-grid h3 {
+  font-family: 'Space Grotesk', sans-serif;
+  color: #1A5F7A;
+  margin-bottom: 1.5rem;
+}
+
+.file-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.file-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.file-icon {
+  flex-shrink: 0;
+}
+
+.file-info {
+  flex-grow: 1;
+}
+
+.file-name {
+  font-family: 'Space Grotesk', sans-serif;
+  color: #1A5F7A;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.125rem;
+}
+
+.file-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: #5A6C7D;
+  flex-wrap: wrap;
+}
+
+.file-meta span {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.file-tag {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.scan-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.scan-badge.passed {
+  background: #D3F9D8;
+  color: #2B8A3E;
+}
+
+.scan-badge.failed {
+  background: #FFE0E0;
+  color: #C92A2A;
+}
+
+.file-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.file-rename {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.rename-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .nav-links {

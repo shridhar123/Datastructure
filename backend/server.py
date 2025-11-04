@@ -280,6 +280,27 @@ async def delete_file(file_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.delete("/conversion/{conversion_id}")
+async def delete_conversion(conversion_id: str):
+    """Delete a converted Excel file"""
+    try:
+        conversion_doc = await db.conversions.find_one({"id": conversion_id})
+        if not conversion_doc:
+            raise HTTPException(status_code=404, detail="Conversion not found")
+        
+        # Delete physical Excel file
+        excel_path = conversion_doc.get('excel_path')
+        if excel_path and os.path.exists(excel_path):
+            os.remove(excel_path)
+        
+        # Delete from database
+        await db.conversions.delete_one({"id": conversion_id})
+        
+        return {"message": "Conversion deleted successfully"}
+    except Exception as e:
+        logger.error(f"Delete conversion error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.post("/convert-pdf", response_model=ConversionResponse)
 async def convert_pdf(request: ConversionRequest):
     """Convert PDF to Excel using LLM with custom prompt"""

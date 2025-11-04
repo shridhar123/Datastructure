@@ -234,15 +234,14 @@ const SeparateUploadPage = () => {
               : 'Supports Excel and CSV files only'}
           </p>
           <p className="drop-subtext">or</p>
-          <label htmlFor="file-input">
-            <Button 
-              className="browse-btn" 
-              disabled={uploading}
-              data-testid="browse-button"
-            >
-              {uploading ? 'Uploading...' : 'Browse Files'}
-            </Button>
-          </label>
+          <Button 
+            className="browse-btn" 
+            disabled={uploading}
+            data-testid="browse-button"
+            onClick={() => document.getElementById('file-input').click()}
+          >
+            {uploading ? 'Uploading...' : 'Browse Files'}
+          </Button>
           <input
             id="file-input"
             type="file"

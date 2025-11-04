@@ -977,7 +977,7 @@ function App() {
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/upload" element={<UploadPage />} />
+            <Route path="/upload" element={<UnifiedUploadPage />} />
             <Route path="/convert" element={<ConvertPage />} />
             <Route path="/reconcile" element={<ReconcilePage />} />
             <Route path="/reports" element={<ReportsPage />} />

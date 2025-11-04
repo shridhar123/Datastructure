@@ -614,25 +614,34 @@ async def perform_reconciliation(config_id: str):
         if not config:
             raise HTTPException(status_code=404, detail="Configuration not found")
         
-        # Get client file
-        client_conversion = await db.conversions.find_one({"id": config['client_file_id']})
-        if not client_conversion:
-            raise HTTPException(status_code=404, detail="Client file not found")
+        # Get client file - check conversions first, then uploads
+        client_file = await db.conversions.find_one({"id": config['client_file_id']})
+        if client_file:
+            client_file_path = client_file['excel_path']
+        else:
+            # Check in uploads collection
+            client_file = await db.uploads.find_one({"id": config['client_file_id']})
+            if client_file:
+                client_file_path = client_file['file_path']
+            else:
+                raise HTTPException(status_code=404, detail="Client file not found")
         
-        # Get ICyte file
-        icyte_upload = await db.uploads.find_one({"id": config['icyte_file_id']})
-        if not icyte_upload:
+        # Get ICyte file - check uploads collection
+        icyte_file = await db.uploads.find_one({"id": config['icyte_file_id']})
+        if not icyte_file:
             raise HTTPException(status_code=404, detail="ICyte file not found")
         
+        icyte_file_path = icyte_file['file_path']
+        
         # Find header rows
-        client_header_row = find_header_row(client_conversion['excel_path'], config['client_sheet'])
-        icyte_header_row = find_header_row(icyte_upload['file_path'], config['icyte_sheet'])
+        client_header_row = find_header_row(client_file_path, config['client_sheet'])
+        icyte_header_row = find_header_row(icyte_file_path, config['icyte_sheet'])
         
         logger.info(f"Client header row: {client_header_row}, ICyte header row: {icyte_header_row}")
         
         # Read both Excel files with correct header rows
-        client_df = pd.read_excel(client_conversion['excel_path'], sheet_name=config['client_sheet'], header=client_header_row)
-        icyte_df = pd.read_excel(icyte_upload['file_path'], sheet_name=config['icyte_sheet'], header=icyte_header_row)
+        client_df = pd.read_excel(client_file_path, sheet_name=config['client_sheet'], header=client_header_row)
+        icyte_df = pd.read_excel(icyte_file_path, sheet_name=config['icyte_sheet'], header=icyte_header_row)
         
         # Get unique keys
         client_unique_key = config['client_unique_key']

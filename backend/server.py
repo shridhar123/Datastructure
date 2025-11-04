@@ -98,9 +98,68 @@ class ReconciliationReport(BaseModel):
 async def root():
     return {"message": "Reconciliation API"}
 
+@api_router.post("/upload-files")
+async def upload_files(files: List[UploadFile] = File(...)):
+    """Upload multiple files (PDF, Excel, CSV)"""
+    try:
+        uploaded_files = []
+        
+        for file in files:
+            # Detect file type from MIME and extension
+            content_type = file.content_type
+            filename = file.filename.lower()
+            
+            # Determine file type tag
+            if filename.endswith('.pdf'):
+                file_type_tag = "PDF"
+                file_type = "pdf"
+            elif filename.endswith(('.xlsx', '.xls')):
+                file_type_tag = "Excel"
+                file_type = "excel"
+            elif filename.endswith('.csv'):
+                file_type_tag = "CSV"
+                file_type = "csv"
+            else:
+                # Skip unsupported files
+                continue
+            
+            file_id = str(uuid.uuid4())
+            file_path = UPLOADS_DIR / f"{file_id}_{file.filename}"
+            
+            # Save file
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+            
+            # Get file size
+            file_size = os.path.getsize(file_path)
+            
+            # Save metadata to DB
+            doc = {
+                "id": file_id,
+                "filename": file.filename,
+                "original_filename": file.filename,
+                "file_path": str(file_path),
+                "file_type": file_type,
+                "file_type_tag": file_type_tag,
+                "content_type": content_type,
+                "file_size": file_size,
+                "uploaded_at": datetime.now(timezone.utc).isoformat(),
+                "uploader": "user",  # Can be extended with actual user info
+                "scan_status": "passed",  # For now, auto-pass. Can integrate virus scan later
+                "status": "uploaded",
+                "version": 1
+            }
+            await db.uploads.insert_one(doc)
+            uploaded_files.append(doc)
+        
+        return {"uploaded_files": uploaded_files, "count": len(uploaded_files)}
+    except Exception as e:
+        logger.error(f"Upload error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.post("/upload-pdf", response_model=PDFUploadResponse)
 async def upload_pdf(file: UploadFile = File(...)):
-    """Upload a PDF file"""
+    """Upload a PDF file (Legacy endpoint - use /upload-files instead)"""
     try:
         if not file.filename.endswith('.pdf'):
             raise HTTPException(status_code=400, detail="Only PDF files are allowed")
@@ -112,14 +171,23 @@ async def upload_pdf(file: UploadFile = File(...)):
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
+        file_size = os.path.getsize(file_path)
+        
         # Save metadata to DB
         doc = {
             "id": file_id,
             "filename": file.filename,
+            "original_filename": file.filename,
             "file_path": str(file_path),
             "file_type": "pdf",
+            "file_type_tag": "PDF",
+            "content_type": file.content_type,
+            "file_size": file_size,
             "uploaded_at": datetime.now(timezone.utc).isoformat(),
-            "status": "uploaded"
+            "uploader": "user",
+            "scan_status": "passed",
+            "status": "uploaded",
+            "version": 1
         }
         await db.uploads.insert_one(doc)
         
@@ -129,7 +197,7 @@ async def upload_pdf(file: UploadFile = File(...)):
 
 @api_router.post("/upload-excel")
 async def upload_excel(file: UploadFile = File(...)):
-    """Upload an Excel file (ICyte report)"""
+    """Upload an Excel file (Legacy endpoint - use /upload-files instead)"""
     try:
         if not (file.filename.endswith('.xlsx') or file.filename.endswith('.xls')):
             raise HTTPException(status_code=400, detail="Only Excel files are allowed")
@@ -140,6 +208,8 @@ async def upload_excel(file: UploadFile = File(...)):
         # Save file
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
+        
+        file_size = os.path.getsize(file_path)
         
         # Save metadata to DB
         doc = {

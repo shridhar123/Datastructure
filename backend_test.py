@@ -509,6 +509,652 @@ class FileUploadTester:
         
         print("\n" + "=" * 80)
 
+class ReconciliationWorkflowTester:
+    def __init__(self):
+        self.test_results = []
+        self.client_file_id = None
+        self.icyte_file_id = None
+        self.config_id = None
+        self.report_id = None
+        
+    def log_result(self, test_name, success, message, details=None):
+        """Log test result"""
+        result = {
+            "test": test_name,
+            "success": success,
+            "message": message,
+            "details": details or {}
+        }
+        self.test_results.append(result)
+        status = "✅ PASS" if success else "❌ FAIL"
+        print(f"{status}: {test_name} - {message}")
+        if details:
+            print(f"   Details: {details}")
+    
+    def create_reconciliation_test_files(self):
+        """Create test files specifically for reconciliation testing"""
+        test_files = {}
+        temp_dir = Path(tempfile.mkdtemp())
+        
+        # Create Client Excel file with NDC data
+        client_excel_path = temp_dir / "client_reconciliation_data.xlsx"
+        client_data = {
+            'NDC11': ['12345678901', '23456789012', '34567890123', '45678901234'],
+            'Drug_Name': ['Aspirin 325mg', 'Ibuprofen 200mg', 'Acetaminophen 500mg', 'Naproxen 220mg'],
+            'Quantity': [100, 250, 150, 75],
+            'Unit_Price': [0.15, 0.25, 0.20, 0.35],
+            'Total_Amount': [15.00, 62.50, 30.00, 26.25],
+            'Manufacturer': ['Bayer', 'Advil', 'Tylenol', 'Aleve']
+        }
+        df_client = pd.DataFrame(client_data)
+        df_client.to_excel(client_excel_path, index=False, sheet_name='ClientData')
+        test_files['client_excel'] = client_excel_path
+        
+        # Create ICyte Excel file with matching and non-matching NDC data
+        icyte_excel_path = temp_dir / "icyte_reconciliation_report.xlsx"
+        icyte_data = {
+            'NDC_Code': ['12345678901', '23456789012', '34567890123', '56789012345'],  # Last one is different
+            'Product_Name': ['Aspirin 325mg', 'Ibuprofen 200mg', 'Acetaminophen 500mg', 'Omeprazole 20mg'],
+            'Dispensed_Qty': [100, 250, 140, 60],  # Third one has variance (150 vs 140)
+            'Cost_Per_Unit': [0.15, 0.25, 0.22, 0.45],  # Third one has variance (0.20 vs 0.22)
+            'Total_Cost': [15.00, 62.50, 30.80, 27.00],
+            'Supplier': ['Bayer Corp', 'Advil Inc', 'Tylenol LLC', 'Prilosec Co']
+        }
+        df_icyte = pd.DataFrame(icyte_data)
+        df_icyte.to_excel(icyte_excel_path, index=False, sheet_name='ICyteReport')
+        test_files['icyte_excel'] = icyte_excel_path
+        
+        return test_files
+    
+    def upload_reconciliation_files(self, test_files):
+        """Upload test files for reconciliation"""
+        print("\n=== Uploading Reconciliation Test Files ===")
+        
+        # Upload Client file
+        try:
+            with open(test_files['client_excel'], 'rb') as f:
+                files = {'files': (test_files['client_excel'].name, f, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
+                data = {'file_source': 'Client'}
+                
+                response = requests.post(f"{BASE_URL}/upload-files", files=files, data=data)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    uploaded_files = result.get('uploaded_files', [])
+                    if uploaded_files:
+                        self.client_file_id = uploaded_files[0]['id']
+                        self.log_result(
+                            "Upload Client Reconciliation File",
+                            True,
+                            f"Successfully uploaded client file: {uploaded_files[0]['filename']}",
+                            {"file_id": self.client_file_id}
+                        )
+                    else:
+                        self.log_result("Upload Client Reconciliation File", False, "No files returned")
+                        return False
+                else:
+                    self.log_result("Upload Client Reconciliation File", False, f"Upload failed: {response.status_code}")
+                    return False
+        except Exception as e:
+            self.log_result("Upload Client Reconciliation File", False, f"Exception: {str(e)}")
+            return False
+        
+        # Upload ICyte file
+        try:
+            with open(test_files['icyte_excel'], 'rb') as f:
+                files = {'files': (test_files['icyte_excel'].name, f, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
+                data = {'file_source': 'ICyte'}
+                
+                response = requests.post(f"{BASE_URL}/upload-files", files=files, data=data)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    uploaded_files = result.get('uploaded_files', [])
+                    if uploaded_files:
+                        self.icyte_file_id = uploaded_files[0]['id']
+                        self.log_result(
+                            "Upload ICyte Reconciliation File",
+                            True,
+                            f"Successfully uploaded ICyte file: {uploaded_files[0]['filename']}",
+                            {"file_id": self.icyte_file_id}
+                        )
+                    else:
+                        self.log_result("Upload ICyte Reconciliation File", False, "No files returned")
+                        return False
+                else:
+                    self.log_result("Upload ICyte Reconciliation File", False, f"Upload failed: {response.status_code}")
+                    return False
+        except Exception as e:
+            self.log_result("Upload ICyte Reconciliation File", False, f"Exception: {str(e)}")
+            return False
+        
+        return True
+    
+    def test_get_available_files(self):
+        """Test Step 1: Get available files"""
+        print("\n=== Testing Get Available Files ===")
+        
+        # Test GET /api/conversions
+        try:
+            response = requests.get(f"{BASE_URL}/conversions")
+            if response.status_code == 200:
+                conversions = response.json().get('conversions', [])
+                self.log_result(
+                    "Get Conversions",
+                    True,
+                    f"Retrieved {len(conversions)} conversion files",
+                    {"count": len(conversions)}
+                )
+            else:
+                self.log_result("Get Conversions", False, f"Failed: {response.status_code}")
+        except Exception as e:
+            self.log_result("Get Conversions", False, f"Exception: {str(e)}")
+        
+        # Test GET /api/uploads?file_source=Client
+        try:
+            response = requests.get(f"{BASE_URL}/uploads?file_source=Client")
+            if response.status_code == 200:
+                client_files = response.json().get('uploads', [])
+                self.log_result(
+                    "Get Client Files",
+                    True,
+                    f"Retrieved {len(client_files)} Client files",
+                    {"count": len(client_files), "files": [f['filename'] for f in client_files]}
+                )
+            else:
+                self.log_result("Get Client Files", False, f"Failed: {response.status_code}")
+        except Exception as e:
+            self.log_result("Get Client Files", False, f"Exception: {str(e)}")
+        
+        # Test GET /api/uploads?file_source=ICyte
+        try:
+            response = requests.get(f"{BASE_URL}/uploads?file_source=ICyte")
+            if response.status_code == 200:
+                icyte_files = response.json().get('uploads', [])
+                self.log_result(
+                    "Get ICyte Files",
+                    True,
+                    f"Retrieved {len(icyte_files)} ICyte files",
+                    {"count": len(icyte_files), "files": [f['filename'] for f in icyte_files]}
+                )
+            else:
+                self.log_result("Get ICyte Files", False, f"Failed: {response.status_code}")
+        except Exception as e:
+            self.log_result("Get ICyte Files", False, f"Exception: {str(e)}")
+    
+    def test_get_excel_sheets(self):
+        """Test Step 2: Get Excel sheet information"""
+        print("\n=== Testing Get Excel Sheets ===")
+        
+        if not self.client_file_id or not self.icyte_file_id:
+            self.log_result("Get Excel Sheets", False, "Missing file IDs for testing")
+            return False
+        
+        # Test Client file sheets
+        try:
+            response = requests.get(f"{BASE_URL}/excel-sheets/{self.client_file_id}")
+            if response.status_code == 200:
+                sheets_info = response.json().get('sheets', {})
+                if sheets_info:
+                    self.log_result(
+                        "Get Client Excel Sheets",
+                        True,
+                        f"Retrieved sheets and columns for client file",
+                        {"sheets": list(sheets_info.keys()), "columns": sheets_info}
+                    )
+                else:
+                    self.log_result("Get Client Excel Sheets", False, "No sheets returned")
+                    return False
+            else:
+                self.log_result("Get Client Excel Sheets", False, f"Failed: {response.status_code}")
+                return False
+        except Exception as e:
+            self.log_result("Get Client Excel Sheets", False, f"Exception: {str(e)}")
+            return False
+        
+        # Test ICyte file sheets
+        try:
+            response = requests.get(f"{BASE_URL}/excel-sheets/{self.icyte_file_id}")
+            if response.status_code == 200:
+                sheets_info = response.json().get('sheets', {})
+                if sheets_info:
+                    self.log_result(
+                        "Get ICyte Excel Sheets",
+                        True,
+                        f"Retrieved sheets and columns for ICyte file",
+                        {"sheets": list(sheets_info.keys()), "columns": sheets_info}
+                    )
+                else:
+                    self.log_result("Get ICyte Excel Sheets", False, "No sheets returned")
+                    return False
+            else:
+                self.log_result("Get ICyte Excel Sheets", False, f"Failed: {response.status_code}")
+                return False
+        except Exception as e:
+            self.log_result("Get ICyte Excel Sheets", False, f"Exception: {str(e)}")
+            return False
+        
+        return True
+    
+    def test_configure_reconciliation(self):
+        """Test Step 3: Configure reconciliation"""
+        print("\n=== Testing Configure Reconciliation ===")
+        
+        if not self.client_file_id or not self.icyte_file_id:
+            self.log_result("Configure Reconciliation", False, "Missing file IDs for configuration")
+            return False
+        
+        # Create reconciliation configuration
+        config_data = {
+            "client_file_id": self.client_file_id,
+            "icyte_file_id": self.icyte_file_id,
+            "client_sheet": "ClientData",
+            "icyte_sheet": "ICyteReport",
+            "client_unique_key": "NDC11",
+            "icyte_unique_key": "NDC_Code",
+            "mappings": [
+                {
+                    "client_column": "Quantity",
+                    "icyte_column": "Dispensed_Qty"
+                },
+                {
+                    "client_column": "Unit_Price",
+                    "icyte_column": "Cost_Per_Unit"
+                },
+                {
+                    "client_column": "Total_Amount",
+                    "icyte_column": "Total_Cost"
+                }
+            ]
+        }
+        
+        try:
+            response = requests.post(f"{BASE_URL}/configure-reconciliation", json=config_data)
+            if response.status_code == 200:
+                config_result = response.json()
+                self.config_id = config_result.get('id')
+                if self.config_id:
+                    self.log_result(
+                        "Configure Reconciliation",
+                        True,
+                        f"Successfully created reconciliation configuration",
+                        {"config_id": self.config_id, "mappings": len(config_data['mappings'])}
+                    )
+                    return True
+                else:
+                    self.log_result("Configure Reconciliation", False, "No config ID returned")
+                    return False
+            else:
+                self.log_result("Configure Reconciliation", False, f"Failed: {response.status_code} - {response.text}")
+                return False
+        except Exception as e:
+            self.log_result("Configure Reconciliation", False, f"Exception: {str(e)}")
+            return False
+    
+    def test_perform_reconciliation(self):
+        """Test Step 4: Perform reconciliation"""
+        print("\n=== Testing Perform Reconciliation ===")
+        
+        if not self.config_id:
+            self.log_result("Perform Reconciliation", False, "Missing config ID for reconciliation")
+            return False
+        
+        try:
+            response = requests.post(f"{BASE_URL}/perform-reconciliation/{self.config_id}")
+            if response.status_code == 200:
+                report_result = response.json()
+                self.report_id = report_result.get('id')
+                
+                # Verify response structure
+                required_fields = ['id', 'total_records', 'matched_records', 'variances', 'column_headers', 'warnings', 'exceptions']
+                missing_fields = [field for field in required_fields if field not in report_result]
+                
+                if missing_fields:
+                    self.log_result(
+                        "Perform Reconciliation",
+                        False,
+                        f"Missing required fields in response: {missing_fields}",
+                        report_result
+                    )
+                    return False
+                
+                # Verify numeric values are preserved
+                total_records = report_result.get('total_records')
+                matched_records = report_result.get('matched_records')
+                variances = report_result.get('variances')
+                
+                if not isinstance(total_records, int) or not isinstance(matched_records, int) or not isinstance(variances, int):
+                    self.log_result(
+                        "Perform Reconciliation",
+                        False,
+                        "Numeric values not preserved correctly",
+                        {"total_records": type(total_records), "matched_records": type(matched_records), "variances": type(variances)}
+                    )
+                    return False
+                
+                # Verify column headers structure
+                column_headers = report_result.get('column_headers', {})
+                if 'unique_key' not in column_headers or 'mappings' not in column_headers:
+                    self.log_result(
+                        "Perform Reconciliation",
+                        False,
+                        "Column headers structure incorrect",
+                        column_headers
+                    )
+                    return False
+                
+                # Verify exceptions data structure
+                exceptions = report_result.get('exceptions', [])
+                if exceptions and isinstance(exceptions, list):
+                    # Check first exception for proper column structure
+                    first_exception = exceptions[0]
+                    expected_columns = ['NDC11', 'RowStatus']  # Unique key and row status
+                    
+                    # Should also have dynamic columns for mappings
+                    for mapping in column_headers.get('mappings', []):
+                        expected_columns.extend([
+                            mapping.get('client_label'),
+                            mapping.get('icyte_label'),
+                            mapping.get('variance_label'),
+                            mapping.get('match_label')
+                        ])
+                    
+                    # Check if some expected columns exist
+                    found_columns = [col for col in expected_columns if col in first_exception]
+                    
+                    if len(found_columns) < 3:  # At least unique key + some mapping columns
+                        self.log_result(
+                            "Perform Reconciliation",
+                            False,
+                            f"Exception data missing expected columns. Found: {list(first_exception.keys())}",
+                            {"expected_some_of": expected_columns, "found": list(first_exception.keys())}
+                        )
+                        return False
+                
+                self.log_result(
+                    "Perform Reconciliation",
+                    True,
+                    f"Successfully performed reconciliation",
+                    {
+                        "report_id": self.report_id,
+                        "total_records": total_records,
+                        "matched_records": matched_records,
+                        "variances": variances,
+                        "warnings_count": len(report_result.get('warnings', [])),
+                        "exceptions_count": len(exceptions)
+                    }
+                )
+                return True
+            else:
+                self.log_result("Perform Reconciliation", False, f"Failed: {response.status_code} - {response.text}")
+                return False
+        except Exception as e:
+            self.log_result("Perform Reconciliation", False, f"Exception: {str(e)}")
+            return False
+    
+    def test_verify_report_structure(self):
+        """Test Step 5: Verify report structure"""
+        print("\n=== Testing Verify Report Structure ===")
+        
+        if not self.report_id:
+            self.log_result("Verify Report Structure", False, "Missing report ID for verification")
+            return False
+        
+        try:
+            response = requests.get(f"{BASE_URL}/reconciliation-report/{self.report_id}")
+            if response.status_code == 200:
+                report = response.json()
+                
+                # Verify dynamic columns structure
+                exceptions = report.get('exceptions', [])
+                if not exceptions:
+                    self.log_result(
+                        "Verify Report Structure",
+                        True,
+                        "Report structure verified (no exceptions to check)",
+                        {"report_id": self.report_id}
+                    )
+                    return True
+                
+                first_row = exceptions[0]
+                
+                # Check for unique key column
+                if 'NDC11' not in first_row:
+                    self.log_result("Verify Report Structure", False, "Missing unique key column (NDC11)")
+                    return False
+                
+                # Check for RowStatus column
+                if 'RowStatus' not in first_row:
+                    self.log_result("Verify Report Structure", False, "Missing RowStatus column")
+                    return False
+                
+                # Verify RowStatus values
+                valid_statuses = ['MATCHED', 'VARIANCE', 'MISSING_IN_CLIENT', 'MISSING_IN_ICYTE']
+                row_status = first_row.get('RowStatus')
+                if row_status not in valid_statuses:
+                    self.log_result(
+                        "Verify Report Structure",
+                        False,
+                        f"Invalid RowStatus value: {row_status}",
+                        {"valid_statuses": valid_statuses}
+                    )
+                    return False
+                
+                # Check for mapping columns (Client:, ICyte:, Variance, Matched)
+                mapping_columns = [col for col in first_row.keys() if 
+                                 col.startswith('Client:') or 
+                                 col.startswith('ICyte:') or 
+                                 col.startswith('Variance') or 
+                                 col.startswith('Matched')]
+                
+                if len(mapping_columns) < 6:  # Should have at least 2 columns per mapping * 3 mappings
+                    self.log_result(
+                        "Verify Report Structure",
+                        False,
+                        f"Insufficient mapping columns found: {len(mapping_columns)}",
+                        {"found_columns": mapping_columns}
+                    )
+                    return False
+                
+                # Verify numeric values are preserved (not strings)
+                numeric_columns = [col for col in first_row.keys() if 'Client:' in col or 'ICyte:' in col or 'Variance' in col]
+                numeric_issues = []
+                for col in numeric_columns:
+                    value = first_row.get(col)
+                    if value is not None and col != 'Matched [Quantity]' and col != 'Matched [Unit_Price]' and col != 'Matched [Total_Amount]':
+                        # Skip 'Matched' columns as they contain strings
+                        if 'Variance' not in col and isinstance(value, str) and value.replace('.', '').replace('-', '').isdigit():
+                            numeric_issues.append(f"{col}: {value} (should be numeric, got string)")
+                
+                if numeric_issues:
+                    self.log_result(
+                        "Verify Report Structure",
+                        False,
+                        f"Numeric values not preserved: {len(numeric_issues)} issues",
+                        {"issues": numeric_issues[:3]}  # Show first 3 issues
+                    )
+                    return False
+                
+                self.log_result(
+                    "Verify Report Structure",
+                    True,
+                    "Report structure verified successfully",
+                    {
+                        "unique_key_present": True,
+                        "row_status_valid": True,
+                        "mapping_columns_count": len(mapping_columns),
+                        "numeric_values_preserved": True
+                    }
+                )
+                return True
+            else:
+                self.log_result("Verify Report Structure", False, f"Failed to get report: {response.status_code}")
+                return False
+        except Exception as e:
+            self.log_result("Verify Report Structure", False, f"Exception: {str(e)}")
+            return False
+    
+    def test_fetch_reports(self):
+        """Test Step 6: Fetch reports"""
+        print("\n=== Testing Fetch Reports ===")
+        
+        # Test GET /api/reconciliation-reports
+        try:
+            response = requests.get(f"{BASE_URL}/reconciliation-reports")
+            if response.status_code == 200:
+                reports_list = response.json().get('reports', [])
+                
+                # Check if our report appears in the list
+                our_report = None
+                for report in reports_list:
+                    if report.get('id') == self.report_id:
+                        our_report = report
+                        break
+                
+                if our_report:
+                    self.log_result(
+                        "Fetch Reports List",
+                        True,
+                        f"Report appears in list (total: {len(reports_list)} reports)",
+                        {"our_report_id": self.report_id, "total_reports": len(reports_list)}
+                    )
+                else:
+                    self.log_result(
+                        "Fetch Reports List",
+                        False,
+                        f"Our report not found in list of {len(reports_list)} reports",
+                        {"report_ids": [r.get('id') for r in reports_list]}
+                    )
+            else:
+                self.log_result("Fetch Reports List", False, f"Failed: {response.status_code}")
+        except Exception as e:
+            self.log_result("Fetch Reports List", False, f"Exception: {str(e)}")
+        
+        # Test GET /api/reconciliation-report/{report_id}
+        if self.report_id:
+            try:
+                response = requests.get(f"{BASE_URL}/reconciliation-report/{self.report_id}")
+                if response.status_code == 200:
+                    report_data = response.json()
+                    
+                    # Verify full report data is accessible
+                    required_fields = ['id', 'config_id', 'total_records', 'matched_records', 'variances', 'exceptions']
+                    missing_fields = [field for field in required_fields if field not in report_data]
+                    
+                    if not missing_fields:
+                        self.log_result(
+                            "Fetch Individual Report",
+                            True,
+                            "Full report data accessible",
+                            {"report_id": self.report_id, "fields_present": len(required_fields)}
+                        )
+                    else:
+                        self.log_result(
+                            "Fetch Individual Report",
+                            False,
+                            f"Missing fields in report data: {missing_fields}",
+                            report_data
+                        )
+                else:
+                    self.log_result("Fetch Individual Report", False, f"Failed: {response.status_code}")
+            except Exception as e:
+                self.log_result("Fetch Individual Report", False, f"Exception: {str(e)}")
+    
+    def cleanup_reconciliation_files(self):
+        """Clean up test files"""
+        print("\n=== Cleaning Up Reconciliation Test Files ===")
+        
+        for file_id, file_type in [(self.client_file_id, "Client"), (self.icyte_file_id, "ICyte")]:
+            if file_id:
+                try:
+                    response = requests.delete(f"{BASE_URL}/file/{file_id}")
+                    if response.status_code == 200:
+                        print(f"✅ Cleaned up {file_type} file {file_id}")
+                    else:
+                        print(f"⚠️  Failed to clean up {file_type} file {file_id}: {response.status_code}")
+                except Exception as e:
+                    print(f"⚠️  Exception cleaning up {file_type} file {file_id}: {str(e)}")
+    
+    def run_reconciliation_workflow_tests(self):
+        """Run complete reconciliation workflow tests"""
+        print("🚀 Starting Reconciliation Workflow Tests")
+        print("=" * 80)
+        
+        # Create and upload test files
+        test_files = self.create_reconciliation_test_files()
+        print(f"📁 Created reconciliation test files: {list(test_files.keys())}")
+        
+        if not self.upload_reconciliation_files(test_files):
+            print("❌ Failed to upload test files - aborting reconciliation tests")
+            return self.test_results
+        
+        # Run workflow tests
+        self.test_get_available_files()
+        
+        if self.test_get_excel_sheets():
+            if self.test_configure_reconciliation():
+                if self.test_perform_reconciliation():
+                    self.test_verify_report_structure()
+                    self.test_fetch_reports()
+        
+        # Print summary
+        self.print_summary()
+        
+        # Cleanup
+        self.cleanup_reconciliation_files()
+        
+        return self.test_results
+    
+    def print_summary(self):
+        """Print test summary"""
+        print("\n" + "=" * 80)
+        print("📊 RECONCILIATION WORKFLOW TEST SUMMARY")
+        print("=" * 80)
+        
+        passed = sum(1 for result in self.test_results if result['success'])
+        failed = len(self.test_results) - passed
+        
+        print(f"Total Tests: {len(self.test_results)}")
+        print(f"✅ Passed: {passed}")
+        print(f"❌ Failed: {failed}")
+        print(f"Success Rate: {(passed/len(self.test_results)*100):.1f}%")
+        
+        if failed > 0:
+            print("\n🔍 FAILED TESTS:")
+            for result in self.test_results:
+                if not result['success']:
+                    print(f"  ❌ {result['test']}: {result['message']}")
+        
+        print("\n" + "=" * 80)
+
 if __name__ == "__main__":
-    tester = FileUploadTester()
-    results = tester.run_all_tests()
+    # Run file upload tests
+    print("Running File Upload Tests...")
+    upload_tester = FileUploadTester()
+    upload_results = upload_tester.run_all_tests()
+    
+    print("\n" + "="*100 + "\n")
+    
+    # Run reconciliation workflow tests
+    print("Running Reconciliation Workflow Tests...")
+    reconciliation_tester = ReconciliationWorkflowTester()
+    reconciliation_results = reconciliation_tester.run_reconciliation_workflow_tests()
+    
+    # Combined summary
+    print("\n" + "="*100)
+    print("🎯 COMBINED TEST SUMMARY")
+    print("="*100)
+    
+    total_upload_tests = len(upload_results)
+    passed_upload_tests = sum(1 for result in upload_results if result['success'])
+    
+    total_reconciliation_tests = len(reconciliation_results)
+    passed_reconciliation_tests = sum(1 for result in reconciliation_results if result['success'])
+    
+    total_tests = total_upload_tests + total_reconciliation_tests
+    total_passed = passed_upload_tests + passed_reconciliation_tests
+    
+    print(f"File Upload Tests: {passed_upload_tests}/{total_upload_tests} passed")
+    print(f"Reconciliation Tests: {passed_reconciliation_tests}/{total_reconciliation_tests} passed")
+    print(f"Overall: {total_passed}/{total_tests} passed ({(total_passed/total_tests*100):.1f}%)")
+    print("="*100)

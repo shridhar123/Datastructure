@@ -465,7 +465,10 @@ async def download_excel(file_id: str):
             )
         
         raise HTTPException(status_code=404, detail="File not found")
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error(f"Download error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/excel-sheets/{file_id}")

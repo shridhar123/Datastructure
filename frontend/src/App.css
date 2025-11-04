@@ -998,6 +998,62 @@ body {
   flex-grow: 1;
 }
 
+
+/* Upload Tabs */
+.upload-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid #E0E7FF;
+}
+
+.upload-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: #64748B;
+  font-weight: 500;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  margin-bottom: -2px;
+}
+
+.upload-tab:hover {
+  color: #1A5F7A;
+  background: rgba(224, 244, 255, 0.3);
+}
+
+.upload-tab.active {
+  color: #1A5F7A;
+  border-bottom-color: #1A5F7A;
+  font-weight: 600;
+}
+
+.upload-tab .file-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  background: #E0F4FF;
+  color: #1A5F7A;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.upload-tab.active .file-count {
+  background: #1A5F7A;
+  color: white;
+}
+
 .file-name {
   font-family: 'Space Grotesk', sans-serif;
   color: #1A5F7A;

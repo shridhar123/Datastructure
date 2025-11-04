@@ -35,7 +35,9 @@ app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
 # LLM Configuration
-EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', 'sk-emergent-9Ca589281A0DaFcC5B')
+EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
+if not EMERGENT_LLM_KEY:
+    logger.warning("EMERGENT_LLM_KEY not set in environment variables. LLM features will not work.")
 
 # Define Models
 class PDFUploadResponse(BaseModel):

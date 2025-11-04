@@ -241,9 +241,10 @@ const UnifiedUploadPage = () => {
             const Icon = getFileTypeIcon(file.file_type_tag || (file.file_type === 'pdf' ? 'PDF' : file.file_type === 'excel' ? 'Excel' : 'CSV'));
             const typeTag = file.file_type_tag || (file.file_type === 'pdf' ? 'PDF' : file.file_type === 'excel' ? 'Excel' : 'CSV');
             const scanStatus = file.scan_status || 'passed';
+            const isNew = recentlyUploadedIds.includes(file.id);
 
             return (
-              <Card key={file.id} className="file-card" data-testid={`file-${file.id}`}>
+              <Card key={file.id} className={`file-card ${isNew ? 'new-upload' : ''}`} data-testid={`file-${file.id}`}>
                 <div className="file-icon" style={{ color: FILE_TYPE_COLORS[typeTag] }}>
                   <Icon size={32} />
                 </div>

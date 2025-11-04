@@ -92,9 +92,19 @@ const UnifiedUploadPage = () => {
       
       // Show success with details
       const uploadedFiles = response.data.uploaded_files || [];
+      const uploadedIds = uploadedFiles.map(f => f.id);
+      
       toast.success(`✓ Successfully uploaded ${response.data.count} file(s)!`, {
         duration: 3000
       });
+      
+      // Track recently uploaded files
+      setRecentlyUploadedIds(uploadedIds);
+      
+      // Clear "new" badge after 5 seconds
+      setTimeout(() => {
+        setRecentlyUploadedIds([]);
+      }, 5000);
       
       // Refresh file list
       await fetchFiles();

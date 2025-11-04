@@ -400,8 +400,14 @@ const ReconcilePage = () => {
   const fetchUploads = async () => {
     try {
       const response = await axios.get(`${API}/uploads`);
-      const excelUploads = response.data.uploads.filter(u => u.file_type === 'excel');
-      setUploads(excelUploads);
+      // Filter to show only Excel and CSV files (exclude PDFs)
+      const dataFiles = response.data.uploads.filter(u => 
+        u.file_type === 'excel' || 
+        u.file_type === 'csv' ||
+        u.file_type_tag === 'Excel' ||
+        u.file_type_tag === 'CSV'
+      );
+      setUploads(dataFiles);
     } catch (error) {
       console.error('Error fetching uploads:', error);
     }

@@ -76,6 +76,10 @@ const UnifiedUploadPage = () => {
     setUploading(true);
     const formData = new FormData();
     
+    // Show which files are being uploaded
+    const fileNames = Array.from(fileList).map(f => f.name).join(', ');
+    toast.info(`Uploading ${fileList.length} file(s)...`);
+    
     for (let i = 0; i < fileList.length; i++) {
       formData.append('files', fileList[i]);
     }
@@ -85,10 +89,22 @@ const UnifiedUploadPage = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
-      toast.success(`${response.data.count} file(s) uploaded successfully!`);
-      fetchFiles();
+      // Show success with details
+      const uploadedFiles = response.data.uploaded_files || [];
+      toast.success(`✓ Successfully uploaded ${response.data.count} file(s)!`, {
+        duration: 3000
+      });
+      
+      // Refresh file list
+      await fetchFiles();
+      
+      // Clear file input
+      const fileInput = document.getElementById('file-input');
+      if (fileInput) fileInput.value = '';
+      
     } catch (error) {
-      toast.error('Failed to upload files');
+      console.error('Upload error:', error);
+      toast.error('Failed to upload files. Please try again.');
     } finally {
       setUploading(false);
     }

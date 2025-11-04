@@ -264,33 +264,34 @@ const ConvertPage = () => {
     }
   };
 
-  const handleDownload = async (fileId) => {
-    console.log('Download clicked for file ID:', fileId);
+  const handleDownload = async (conversion) => {
+    if (conversion.status !== 'completed') {
+      toast.error('Download is only available for completed conversions');
+      return;
+    }
+
     toast.info('Starting download...');
     
     try {
-      console.log('Making request to:', `${API}/download-excel/${fileId}`);
-      const response = await axios.get(`${API}/download-excel/${fileId}`, {
+      const response = await axios.get(`${API}/download-excel/${conversion.id}`, {
         responseType: 'blob'
       });
-      
-      console.log('Response received:', response.status, response.headers);
       
       // Create blob with proper mime type
       const blob = new Blob([response.data], { 
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
       });
       
-      console.log('Blob created, size:', blob.size);
+      // Create filename with timestamp
+      const timestamp = new Date(conversion.created_at).toISOString().split('T')[0];
+      const filename = `Converted_${conversion.id.substring(0, 8)}_${timestamp}.xlsx`;
       
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `converted_${fileId}.xlsx`);
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
-      
-      console.log('Download triggered');
       
       // Cleanup
       setTimeout(() => {
@@ -298,11 +299,36 @@ const ConvertPage = () => {
         link.remove();
       }, 100);
       
-      toast.success('Download started!');
+      toast.success('✓ File downloaded successfully');
     } catch (error) {
       console.error('Download error:', error);
-      console.error('Error details:', error.response);
-      toast.error(`Failed to download file: ${error.message}`);
+      toast.error('❌ Download failed. Please try again or contact support.');
+    }
+  };
+
+  const openDeleteConversionModal = (conversionId) => {
+    setDeleteModal({ isOpen: true, conversionId });
+  };
+
+  const closeDeleteConversionModal = () => {
+    setDeleteModal({ isOpen: false, conversionId: null });
+  };
+
+  const handleDeleteConversion = async () => {
+    const conversionId = deleteModal.conversionId;
+    closeDeleteConversionModal();
+
+    // Optimistic update
+    setConversions(conversions.filter(c => c.id !== conversionId));
+
+    try {
+      await axios.delete(`${API}/conversion/${conversionId}`);
+      toast.success('✓ Converted file deleted successfully');
+      await fetchConversions();
+    } catch (error) {
+      console.error('Delete conversion error:', error);
+      toast.error('❌ Unable to delete file. Please try again later.');
+      await fetchConversions(); // Restore on error
     }
   };
 

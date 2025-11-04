@@ -1493,6 +1493,13 @@ class DownloadFunctionalityTester:
         print("\n" + "=" * 80)
 
 if __name__ == "__main__":
+    # Run download functionality tests (as requested)
+    print("Running Download Functionality Tests...")
+    download_tester = DownloadFunctionalityTester()
+    download_results = download_tester.run_download_tests()
+    
+    print("\n" + "="*100 + "\n")
+    
     # Run file upload tests
     print("Running File Upload Tests...")
     upload_tester = FileUploadTester()
@@ -1510,15 +1517,19 @@ if __name__ == "__main__":
     print("🎯 COMBINED TEST SUMMARY")
     print("="*100)
     
+    total_download_tests = len(download_results)
+    passed_download_tests = sum(1 for result in download_results if result['success'])
+    
     total_upload_tests = len(upload_results)
     passed_upload_tests = sum(1 for result in upload_results if result['success'])
     
     total_reconciliation_tests = len(reconciliation_results)
     passed_reconciliation_tests = sum(1 for result in reconciliation_results if result['success'])
     
-    total_tests = total_upload_tests + total_reconciliation_tests
-    total_passed = passed_upload_tests + passed_reconciliation_tests
+    total_tests = total_download_tests + total_upload_tests + total_reconciliation_tests
+    total_passed = passed_download_tests + passed_upload_tests + passed_reconciliation_tests
     
+    print(f"Download Tests: {passed_download_tests}/{total_download_tests} passed")
     print(f"File Upload Tests: {passed_upload_tests}/{total_upload_tests} passed")
     print(f"Reconciliation Tests: {passed_reconciliation_tests}/{total_reconciliation_tests} passed")
     print(f"Overall: {total_passed}/{total_tests} passed ({(total_passed/total_tests*100):.1f}%)")

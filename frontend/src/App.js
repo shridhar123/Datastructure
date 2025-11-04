@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Upload, FileText, Settings, BarChart3, Home, ArrowRight, Download, FileSpreadsheet, Plus, Check, X } from "lucide-react";
+import { Upload, FileText, Settings, BarChart3, Home, ArrowRight, Download, FileSpreadsheet, Plus, Check, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

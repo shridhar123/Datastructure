@@ -365,7 +365,8 @@ const ConvertPage = () => {
 
 const ReconcilePage = () => {
   const [conversions, setConversions] = useState([]);
-  const [uploads, setUploads] = useState([]);
+  const [clientFiles, setClientFiles] = useState([]);
+  const [icyteFiles, setIcyteFiles] = useState([]);
   const [clientFileId, setClientFileId] = useState('');
   const [icyteFileId, setIcyteFileId] = useState('');
   const [clientSheets, setClientSheets] = useState({});
@@ -399,15 +400,19 @@ const ReconcilePage = () => {
 
   const fetchUploads = async () => {
     try {
-      const response = await axios.get(`${API}/uploads`);
-      // Filter to show only Excel and CSV files (exclude PDFs)
-      const dataFiles = response.data.uploads.filter(u => 
+      // Fetch Client files (non-PDF only for reconciliation)
+      const clientResponse = await axios.get(`${API}/uploads?file_source=Client`);
+      const clientDataFiles = (clientResponse.data.uploads || []).filter(u => 
         u.file_type === 'excel' || 
         u.file_type === 'csv' ||
         u.file_type_tag === 'Excel' ||
         u.file_type_tag === 'CSV'
       );
-      setUploads(dataFiles);
+      setClientFiles(clientDataFiles);
+
+      // Fetch ICyte files (Excel/CSV only)
+      const icyteResponse = await axios.get(`${API}/uploads?file_source=ICyte`);
+      setIcyteFiles(icyteResponse.data.uploads || []);
     } catch (error) {
       console.error('Error fetching uploads:', error);
     }

@@ -211,6 +211,7 @@ const ConvertPage = () => {
   const [prompt, setPrompt] = useState('');
   const [converting, setConverting] = useState(false);
   const [conversions, setConversions] = useState([]);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, conversionId: null });
 
   useEffect(() => {
     fetchUploads();

@@ -31,6 +31,7 @@ const SeparateUploadPage = () => {
   const [editingFileId, setEditingFileId] = useState(null);
   const [newFileName, setNewFileName] = useState('');
   const [recentlyUploadedIds, setRecentlyUploadedIds] = useState([]);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, fileId: null, fileName: '' });
 
   useEffect(() => {
     fetchFiles();

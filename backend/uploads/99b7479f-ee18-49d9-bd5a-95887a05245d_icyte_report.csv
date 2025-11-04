@@ -1,0 +1,4 @@
+NDC,Drug_Name,Quantity_Dispensed,Unit_Cost,Total_Cost
+12345-678-90,Medication A,120,12.5,1500.0
+23456-789-01,Medication B,240,18.75,4500.0
+34567-890-12,Medication C,90,22.0,1980.0

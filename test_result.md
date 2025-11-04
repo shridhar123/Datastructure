@@ -112,27 +112,33 @@ user_problem_statement: |
 backend:
   - task: "Add file_source field to upload endpoint"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Updated /upload-files endpoint to accept file_source parameter (Client or ICyte). Added validation to skip PDFs for ICyte uploads. Modified upload document to include file_source field."
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: All file upload functionality working correctly. Client uploads accept PDF/Excel/CSV files. ICyte uploads accept Excel/CSV and correctly skip PDFs. File_source parameter validation working (rejects invalid values with 400 status). All uploaded files have correct file_source metadata. Fixed MongoDB ObjectId serialization issue during testing."
 
   - task: "Add file_source filtering to get uploads endpoint"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Updated /uploads endpoint to accept optional file_source query parameter for filtering uploads by Client or ICyte source."
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: File source filtering working perfectly. GET /api/uploads returns all files. GET /api/uploads?file_source=Client returns only Client files. GET /api/uploads?file_source=ICyte returns only ICyte files. All filtering results are correctly validated."
 
 frontend:
   - task: "Create SeparateUploadPage component with tabs"

@@ -101,3 +101,123 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: |
+  Implement separate upload functionalities for Client files (supporting PDF, Excel, CSV) and ICyte files (supporting Excel and CSV only). 
+  Update the reconciliation page dropdowns to:
+  - "Client File (Converted Excel)" dropdown: Show both converted files AND uploaded Client files (non-PDF)
+  - "ICyte Report (Excel)" dropdown: Show only uploaded ICyte files
+  Files should be tagged with their source (Client or ICyte) and filtered accordingly throughout the application.
+
+backend:
+  - task: "Add file_source field to upload endpoint"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated /upload-files endpoint to accept file_source parameter (Client or ICyte). Added validation to skip PDFs for ICyte uploads. Modified upload document to include file_source field."
+
+  - task: "Add file_source filtering to get uploads endpoint"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated /uploads endpoint to accept optional file_source query parameter for filtering uploads by Client or ICyte source."
+
+frontend:
+  - task: "Create SeparateUploadPage component with tabs"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/SeparateUploadPage.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created new component with Client and ICyte tabs. Includes drag-and-drop upload, file type validation (ICyte doesn't accept PDFs), separate file lists, and file management actions (rename, delete)."
+
+  - task: "Replace UnifiedUploadPage with SeparateUploadPage in routing"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated App.js to import and use SeparateUploadPage instead of UnifiedUploadPage in the /upload route."
+
+  - task: "Update ReconcilePage to fetch and display files by source"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Modified ReconcilePage to fetch Client and ICyte files separately using file_source query parameter. Updated Client dropdown to show both conversions and uploaded Client files. Updated ICyte dropdown to show only ICyte uploaded files."
+
+  - task: "Add CSS styles for upload tabs"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/App.css"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added CSS styles for .upload-tabs, .upload-tab, and .file-count to create a clean tabbed interface."
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 0
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Add file_source field to upload endpoint"
+    - "Add file_source filtering to get uploads endpoint"
+    - "Create SeparateUploadPage component with tabs"
+    - "Update ReconcilePage to fetch and display files by source"
+  stuck_tasks: []
+  test_all: true
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: |
+      Implementation complete for separate Client and ICyte upload functionality.
+      
+      Backend Changes:
+      1. /upload-files now accepts file_source parameter (Client or ICyte)
+      2. Validates and skips PDFs for ICyte uploads
+      3. /uploads endpoint supports file_source query parameter for filtering
+      
+      Frontend Changes:
+      1. Created SeparateUploadPage with Client/ICyte tabs
+      2. Each tab shows its respective files with counts
+      3. ICyte tab prevents PDF uploads at the UI level
+      4. ReconcilePage now fetches files separately by source
+      5. Client dropdown shows conversions + uploaded Client files
+      6. ICyte dropdown shows only ICyte files
+      
+      Ready for backend testing to verify:
+      - File uploads with file_source parameter
+      - File source filtering on GET /uploads
+      - PDF validation for ICyte uploads

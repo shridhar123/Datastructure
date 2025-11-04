@@ -211,11 +211,9 @@ metadata:
   run_ui: true
 
 test_plan:
-  current_focus:
-    - "Update ReconcilePage to fetch and display files by source"
-  stuck_tasks:
-    - "Update ReconcilePage to fetch and display files by source"
-  test_all: false
+  current_focus: []
+  stuck_tasks: []
+  test_all: true
   test_priority: "high_first"
 
 agent_communication:

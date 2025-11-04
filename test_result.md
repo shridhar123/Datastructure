@@ -197,10 +197,10 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Add file_source field to upload endpoint"
-    - "Add file_source filtering to get uploads endpoint"
     - "Create SeparateUploadPage component with tabs"
+    - "Replace UnifiedUploadPage with SeparateUploadPage in routing"
     - "Update ReconcilePage to fetch and display files by source"
+    - "Add CSS styles for upload tabs"
   stuck_tasks: []
   test_all: true
   test_priority: "high_first"

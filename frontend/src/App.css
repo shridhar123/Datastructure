@@ -1049,6 +1049,52 @@ body {
   font-weight: 600;
 }
 
+/* Status Badges for RowStatus */
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.matched {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.status-badge.variance {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.status-badge.missing-in-client {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.status-badge.missing-in-icyte {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+/* Enhanced variance badge */
+.variance-badge {
+  padding: 0.25rem 0.5rem;
+  background: #FEF3C7;
+  border-radius: 6px;
+  font-weight: 500;
+  font-family: 'Courier New', monospace;
+}
+
+/* Sticky column styling */
+.exceptions-table table th:first-child,
+.exceptions-table table td:first-child {
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+}
+
+
 .upload-tab.active .file-count {
   background: #1A5F7A;
   color: white;

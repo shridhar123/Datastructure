@@ -550,22 +550,49 @@ const ReconcilePage = () => {
     }
   };
 
+  // Check if only PDFs exist (no data files available)
+  const hasDataFiles = conversions.length > 0 || clientFiles.length > 0 || icyteFiles.length > 0;
+
   return (
     <div className="page-container" data-testid="reconcile-page">
       <h1 className="page-title">Configure Reconciliation</h1>
+      <p className="page-subtitle">Reconcile non-PDF data files - Excel and CSV only</p>
+
+      {!hasDataFiles && (
+        <Card className="warning-banner" style={{
+          backgroundColor: '#FEF3C7',
+          border: '1px solid #F59E0B',
+          padding: '1rem',
+          marginBottom: '1.5rem',
+          borderRadius: '8px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#92400E' }}>
+            <span style={{ fontSize: '1.5rem' }}>⚠️</span>
+            <div>
+              <strong>Reconciliation requires Excel/CSV files.</strong>
+              <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem' }}>
+                Upload data files to the Upload page or run Convert to generate Excel files from PDFs first.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <Card className="reconcile-card">
         <div className="reconcile-section">
-          <h3>Client File (Converted Excel)</h3>
+          <h3>Source 1 (Client Data)</h3>
+          <p className="field-description" style={{ fontSize: '0.875rem', color: '#6B7280', marginBottom: '0.5rem' }}>
+            Select Excel/CSV or Generated Excels from Convert
+          </p>
           <Select value={clientFileId} onValueChange={setClientFileId}>
             <SelectTrigger data-testid="client-file-select">
-              <SelectValue placeholder="Select client file" />
+              <SelectValue placeholder="Select client data file" />
             </SelectTrigger>
             <SelectContent>
               {conversions.length > 0 && (
                 <>
                   <SelectItem value="converted-header" disabled style={{fontWeight: 'bold', color: '#666'}}>
-                    Converted Files
+                    📄 Generated Excels (from Convert)
                   </SelectItem>
                   {conversions.map((conv) => (
                     <SelectItem key={conv.id} value={conv.id}>
@@ -578,14 +605,19 @@ const ReconcilePage = () => {
                 <>
                   {conversions.length > 0 && <SelectItem value="divider" disabled>---</SelectItem>}
                   <SelectItem value="uploaded-header" disabled style={{fontWeight: 'bold', color: '#666'}}>
-                    Uploaded Client Files
+                    📊 Uploaded Client Files
                   </SelectItem>
                   {clientFiles.map((file) => (
                     <SelectItem key={file.id} value={file.id}>
-                      {file.filename}
+                      {file.file_type_tag === 'Excel' ? '📗' : '📄'} {file.filename}
                     </SelectItem>
                   ))}
                 </>
+              )}
+              {conversions.length === 0 && clientFiles.length === 0 && (
+                <SelectItem value="no-files" disabled>
+                  No data files available
+                </SelectItem>
               )}
             </SelectContent>
           </Select>

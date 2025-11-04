@@ -159,7 +159,9 @@ async def upload_files(files: List[UploadFile] = File(...), file_source: str = F
                 "version": 1
             }
             await db.uploads.insert_one(doc)
-            uploaded_files.append(doc)
+            # Create a clean copy without MongoDB ObjectId for response
+            clean_doc = {k: v for k, v in doc.items() if k != '_id'}
+            uploaded_files.append(clean_doc)
         
         return {"uploaded_files": uploaded_files, "count": len(uploaded_files)}
     except Exception as e:

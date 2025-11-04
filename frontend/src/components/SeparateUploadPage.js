@@ -152,18 +152,38 @@ const SeparateUploadPage = () => {
     }
   };
 
-  const handleDelete = async (fileId) => {
-    if (!window.confirm('Are you sure you want to delete this file?')) {
-      return;
+  const openDeleteModal = (fileId, fileName) => {
+    setDeleteModal({ isOpen: true, fileId, fileName });
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal({ isOpen: false, fileId: null, fileName: '' });
+  };
+
+  const handleDelete = async () => {
+    const fileId = deleteModal.fileId;
+    closeDeleteModal();
+
+    // Optimistic update - remove from UI immediately
+    const currentFiles = activeTab === 'Client' ? clientFiles : icyteFiles;
+    const updatedFiles = currentFiles.filter(f => f.id !== fileId);
+    
+    if (activeTab === 'Client') {
+      setClientFiles(updatedFiles);
+    } else {
+      setIcyteFiles(updatedFiles);
     }
 
     try {
       await axios.delete(`${API}/file/${fileId}`);
-      toast.success('File deleted successfully');
+      toast.success('✓ File deleted successfully');
+      // Refresh to ensure sync with backend
       await fetchFiles();
     } catch (error) {
       console.error('Delete error:', error);
-      toast.error('Failed to delete file');
+      toast.error('❌ Unable to delete file. Please try again later.');
+      // Restore the file list on error
+      await fetchFiles();
     }
   };
 

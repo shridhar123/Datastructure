@@ -97,14 +97,16 @@ const SeparateUploadPage = () => {
     
     toast.info(`Uploading ${fileList.length} file(s) to ${activeTab}...`);
     
+    // Add file_source as form data
+    formData.append('file_source', activeTab);
+    
     for (let i = 0; i < fileList.length; i++) {
       formData.append('files', fileList[i]);
     }
 
     try {
       const response = await axios.post(`${API}/upload-files`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        params: { file_source: activeTab }
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
       
       const uploadedFiles = response.data.uploaded_files || [];

@@ -270,39 +270,60 @@ const ConvertPage = () => {
       return;
     }
 
-    toast.info('Starting download...');
+    const loadingToast = toast.loading('Preparing download...');
     
     try {
+      console.log('Downloading conversion:', conversion.id);
       const response = await axios.get(`${API}/download-excel/${conversion.id}`, {
-        responseType: 'blob'
+        responseType: 'blob',
+        timeout: 30000 // 30 second timeout
       });
+      
+      console.log('Response received:', response.status, response.headers);
+      
+      if (!response.data || response.data.size === 0) {
+        throw new Error('Downloaded file is empty');
+      }
       
       // Create blob with proper mime type
       const blob = new Blob([response.data], { 
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
       });
       
+      console.log('Blob created, size:', blob.size);
+      
       // Create filename with timestamp
       const timestamp = new Date(conversion.created_at).toISOString().split('T')[0];
       const filename = `Converted_${conversion.id.substring(0, 8)}_${timestamp}.xlsx`;
       
+      // Create download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', filename);
+      link.download = filename; // Use .download instead of setAttribute
       document.body.appendChild(link);
+      
+      console.log('Triggering download:', filename);
       link.click();
       
       // Cleanup
       setTimeout(() => {
         window.URL.revokeObjectURL(url);
         link.remove();
-      }, 100);
+      }, 1000);
       
-      toast.success('✓ File downloaded successfully');
+      toast.dismiss(loadingToast);
+      toast.success(`✓ ${filename} downloaded successfully`, { duration: 4000 });
     } catch (error) {
+      toast.dismiss(loadingToast);
       console.error('Download error:', error);
-      toast.error('❌ Download failed. Please try again or contact support.');
+      console.error('Error details:', error.response?.data, error.response?.status);
+      
+      const errorMsg = error.response?.status === 404 
+        ? 'File not found on server' 
+        : error.message || 'Download failed';
+      
+      toast.error(`❌ ${errorMsg}. Please try again.`, { duration: 5000 });
     }
   };
 

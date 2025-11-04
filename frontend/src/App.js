@@ -407,6 +407,18 @@ const ConvertPage = () => {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={closeDeleteConversionModal}
+        onConfirm={handleDeleteConversion}
+        title="Delete Converted File"
+        message="Do you want to delete this converted file? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDestructive={true}
+      />
     </div>
   );
 };

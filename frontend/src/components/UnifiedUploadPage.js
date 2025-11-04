@@ -27,6 +27,7 @@ const UnifiedUploadPage = () => {
   const [dragActive, setDragActive] = useState(false);
   const [editingFileId, setEditingFileId] = useState(null);
   const [newFileName, setNewFileName] = useState('');
+  const [recentlyUploadedIds, setRecentlyUploadedIds] = useState([]);
 
   useEffect(() => {
     fetchFiles();

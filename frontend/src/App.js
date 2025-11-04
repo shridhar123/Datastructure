@@ -660,17 +660,31 @@ const ReconcilePage = () => {
         </div>
 
         <div className="reconcile-section">
-          <h3>ICyte Report (Excel)</h3>
+          <h3>Source 2 (ICyte Data)</h3>
+          <p className="field-description" style={{ fontSize: '0.875rem', color: '#6B7280', marginBottom: '0.5rem' }}>
+            Select Excel/CSV or Generated Excels
+          </p>
           <Select value={icyteFileId} onValueChange={setIcyteFileId}>
             <SelectTrigger data-testid="icyte-file-select">
-              <SelectValue placeholder="Select ICyte report" />
+              <SelectValue placeholder="Select ICyte data file" />
             </SelectTrigger>
             <SelectContent>
-              {icyteFiles.map((file) => (
-                <SelectItem key={file.id} value={file.id}>
-                  {file.filename}
+              {icyteFiles.length > 0 ? (
+                <>
+                  <SelectItem value="uploaded-header" disabled style={{fontWeight: 'bold', color: '#666'}}>
+                    📊 Uploaded ICyte Files
+                  </SelectItem>
+                  {icyteFiles.map((file) => (
+                    <SelectItem key={file.id} value={file.id}>
+                      {file.file_type_tag === 'Excel' ? '📗' : '📄'} {file.filename}
+                    </SelectItem>
+                  ))}
+                </>
+              ) : (
+                <SelectItem value="no-files" disabled>
+                  No data files available
                 </SelectItem>
-              ))}
+              )}
             </SelectContent>
           </Select>
 

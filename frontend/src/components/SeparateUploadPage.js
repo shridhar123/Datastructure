@@ -384,7 +384,7 @@ const SeparateUploadPage = () => {
                       size="sm"
                       variant="ghost"
                       className="delete-btn"
-                      onClick={() => handleDelete(file.id)}
+                      onClick={() => openDeleteModal(file.id, file.filename)}
                       data-testid={`delete-btn-${file.id}`}
                     >
                       <Trash2 size={14} /> Delete

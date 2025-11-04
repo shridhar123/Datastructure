@@ -226,6 +226,47 @@ async def upload_excel(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.put("/file/{file_id}/rename")
+async def rename_file(file_id: str, new_filename: str = Form(...)):
+    """Rename an uploaded file"""
+    try:
+        file_doc = await db.uploads.find_one({"id": file_id})
+        if not file_doc:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Update filename in database
+        result = await db.uploads.update_one(
+            {"id": file_id},
+            {"$set": {"filename": new_filename}}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        return {"message": "File renamed successfully", "new_filename": new_filename}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/file/{file_id}")
+async def delete_file(file_id: str):
+    """Delete an uploaded file"""
+    try:
+        file_doc = await db.uploads.find_one({"id": file_id})
+        if not file_doc:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Delete physical file
+        file_path = file_doc['file_path']
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        
+        # Delete from database
+        await db.uploads.delete_one({"id": file_id})
+        
+        return {"message": "File deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.post("/convert-pdf", response_model=ConversionResponse)
 async def convert_pdf(request: ConversionRequest):
     """Convert PDF to Excel using LLM with custom prompt"""

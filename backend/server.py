@@ -99,10 +99,14 @@ async def root():
     return {"message": "Reconciliation API"}
 
 @api_router.post("/upload-files")
-async def upload_files(files: List[UploadFile] = File(...)):
-    """Upload multiple files (PDF, Excel, CSV)"""
+async def upload_files(files: List[UploadFile] = File(...), file_source: str = Form("Client")):
+    """Upload multiple files (PDF, Excel, CSV) with source tracking"""
     try:
         uploaded_files = []
+        
+        # Validate file_source
+        if file_source not in ["Client", "ICyte"]:
+            raise HTTPException(status_code=400, detail="file_source must be 'Client' or 'ICyte'")
         
         for file in files:
             # Detect file type from MIME and extension
@@ -122,6 +126,10 @@ async def upload_files(files: List[UploadFile] = File(...)):
             else:
                 # Skip unsupported files
                 continue
+            
+            # Validate file types for ICyte uploads (Excel/CSV only)
+            if file_source == "ICyte" and file_type == "pdf":
+                continue  # Skip PDFs for ICyte uploads
             
             file_id = str(uuid.uuid4())
             file_path = UPLOADS_DIR / f"{file_id}_{file.filename}"
@@ -143,6 +151,7 @@ async def upload_files(files: List[UploadFile] = File(...)):
                 "file_type_tag": file_type_tag,
                 "content_type": content_type,
                 "file_size": file_size,
+                "file_source": file_source,  # Track the source: "Client" or "ICyte"
                 "uploaded_at": datetime.now(timezone.utc).isoformat(),
                 "uploader": "user",  # Can be extended with actual user info
                 "scan_status": "passed",  # For now, auto-pass. Can integrate virus scan later

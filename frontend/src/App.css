@@ -1090,6 +1090,99 @@ body {
 
 /* Sticky column styling */
 .exceptions-table table th:first-child,
+
+/* Confirm Modal Styles */
+.confirm-modal {
+  max-width: 500px;
+  padding: 0;
+}
+
+.confirm-modal .modal-header {
+  padding: 2rem 2rem 1rem 2rem;
+  text-align: center;
+}
+
+.confirm-modal .warning-icon {
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.confirm-modal .modal-body {
+  padding: 0 2rem 2rem 2rem;
+  text-align: center;
+  color: #6B7280;
+  font-size: 0.95rem;
+}
+
+.confirm-modal .modal-footer {
+  padding: 1rem 2rem 2rem 2rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.confirm-modal .modal-footer button {
+  min-width: 100px;
+}
+
+.btn-destructive {
+  background: #EF4444 !important;
+  color: white !important;
+}
+
+.btn-destructive:hover {
+  background: #DC2626 !important;
+}
+
+/* Conversion Item Actions */
+.conversion-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.conversion-info {
+  flex: 1;
+}
+
+.conversion-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.status-badge.completed {
+  background: #D1FAE5;
+  color: #065F46;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.processing {
+  background: #FEF3C7;
+  color: #92400E;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.failed {
+  background: #FEE2E2;
+  color: #991B1B;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
 .exceptions-table table td:first-child {
   box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
 }

@@ -1127,6 +1127,371 @@ class ReconciliationWorkflowTester:
         
         print("\n" + "=" * 80)
 
+class DownloadFunctionalityTester:
+    def __init__(self):
+        self.test_results = []
+        self.conversion_id = None
+        
+    def log_result(self, test_name, success, message, details=None):
+        """Log test result"""
+        result = {
+            "test": test_name,
+            "success": success,
+            "message": message,
+            "details": details or {}
+        }
+        self.test_results.append(result)
+        status = "✅ PASS" if success else "❌ FAIL"
+        print(f"{status}: {test_name} - {message}")
+        if details:
+            print(f"   Details: {details}")
+    
+    def test_get_conversions_list(self):
+        """Test Step 1: Get conversions list and find completed conversions"""
+        print("\n=== Testing Get Conversions List ===")
+        
+        try:
+            response = requests.get(f"{BASE_URL}/conversions")
+            if response.status_code == 200:
+                conversions = response.json().get('conversions', [])
+                
+                # Look for conversions with status="completed"
+                completed_conversions = [c for c in conversions if c.get('status') == 'completed']
+                
+                if completed_conversions:
+                    # Pick the first completed conversion
+                    self.conversion_id = completed_conversions[0]['id']
+                    self.log_result(
+                        "Get Conversions List",
+                        True,
+                        f"Found {len(completed_conversions)} completed conversions out of {len(conversions)} total",
+                        {
+                            "total_conversions": len(conversions),
+                            "completed_conversions": len(completed_conversions),
+                            "selected_conversion_id": self.conversion_id,
+                            "selected_conversion": completed_conversions[0]
+                        }
+                    )
+                    return True
+                else:
+                    self.log_result(
+                        "Get Conversions List",
+                        False,
+                        f"No completed conversions found out of {len(conversions)} total conversions",
+                        {"conversions": conversions}
+                    )
+                    return False
+            else:
+                self.log_result(
+                    "Get Conversions List",
+                    False,
+                    f"Failed to get conversions: {response.status_code}",
+                    {"response": response.text}
+                )
+                return False
+        except Exception as e:
+            self.log_result(
+                "Get Conversions List",
+                False,
+                f"Exception getting conversions: {str(e)}"
+            )
+            return False
+    
+    def test_download_excel_endpoint(self):
+        """Test Step 2: Test download endpoint with valid conversion ID"""
+        print("\n=== Testing Download Excel Endpoint ===")
+        
+        if not self.conversion_id:
+            self.log_result(
+                "Download Excel Endpoint",
+                False,
+                "No conversion ID available for testing"
+            )
+            return False
+        
+        try:
+            response = requests.get(f"{BASE_URL}/download-excel/{self.conversion_id}")
+            
+            if response.status_code == 200:
+                # Check Content-Type header
+                content_type = response.headers.get('content-type', '')
+                expected_content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                
+                content_type_valid = content_type == expected_content_type
+                
+                # Check Content-Disposition header
+                content_disposition = response.headers.get('content-disposition', '')
+                has_filename = 'filename=' in content_disposition
+                
+                # Check file content (Excel files start with PK signature)
+                content = response.content
+                file_size = len(content)
+                is_excel_file = content.startswith(b'PK')  # Excel files are ZIP-based and start with PK
+                
+                # Verify all conditions
+                all_checks_passed = (
+                    content_type_valid and
+                    has_filename and
+                    file_size > 0 and
+                    is_excel_file
+                )
+                
+                if all_checks_passed:
+                    self.log_result(
+                        "Download Excel Endpoint",
+                        True,
+                        f"Successfully downloaded valid Excel file ({file_size} bytes)",
+                        {
+                            "conversion_id": self.conversion_id,
+                            "content_type": content_type,
+                            "content_disposition": content_disposition,
+                            "file_size": file_size,
+                            "is_excel_format": is_excel_file,
+                            "headers_valid": True
+                        }
+                    )
+                    return True
+                else:
+                    issues = []
+                    if not content_type_valid:
+                        issues.append(f"Invalid Content-Type: expected '{expected_content_type}', got '{content_type}'")
+                    if not has_filename:
+                        issues.append(f"Missing filename in Content-Disposition header: '{content_disposition}'")
+                    if file_size == 0:
+                        issues.append("File size is 0 bytes")
+                    if not is_excel_file:
+                        issues.append("File does not have Excel signature (PK)")
+                    
+                    self.log_result(
+                        "Download Excel Endpoint",
+                        False,
+                        f"Download validation failed: {len(issues)} issues found",
+                        {
+                            "issues": issues,
+                            "content_type": content_type,
+                            "content_disposition": content_disposition,
+                            "file_size": file_size,
+                            "is_excel_format": is_excel_file
+                        }
+                    )
+                    return False
+            else:
+                self.log_result(
+                    "Download Excel Endpoint",
+                    False,
+                    f"Download failed with status {response.status_code}",
+                    {
+                        "conversion_id": self.conversion_id,
+                        "status_code": response.status_code,
+                        "response": response.text
+                    }
+                )
+                return False
+        except Exception as e:
+            self.log_result(
+                "Download Excel Endpoint",
+                False,
+                f"Exception during download: {str(e)}"
+            )
+            return False
+    
+    def test_download_error_cases(self):
+        """Test Step 3: Test error cases with invalid conversion ID"""
+        print("\n=== Testing Download Error Cases ===")
+        
+        # Test with invalid conversion ID
+        invalid_id = "invalid-conversion-id-12345"
+        
+        try:
+            response = requests.get(f"{BASE_URL}/download-excel/{invalid_id}")
+            
+            if response.status_code == 404:
+                self.log_result(
+                    "Download Error Cases - Invalid ID",
+                    True,
+                    f"Correctly returned 404 for invalid conversion ID",
+                    {
+                        "invalid_id": invalid_id,
+                        "status_code": response.status_code,
+                        "response": response.text
+                    }
+                )
+            else:
+                self.log_result(
+                    "Download Error Cases - Invalid ID",
+                    False,
+                    f"Expected 404 for invalid ID, got {response.status_code}",
+                    {
+                        "invalid_id": invalid_id,
+                        "status_code": response.status_code,
+                        "response": response.text
+                    }
+                )
+        except Exception as e:
+            self.log_result(
+                "Download Error Cases - Invalid ID",
+                False,
+                f"Exception testing invalid ID: {str(e)}"
+            )
+        
+        # Test with empty conversion ID
+        try:
+            response = requests.get(f"{BASE_URL}/download-excel/")
+            
+            # This should return 404 or 405 (Method Not Allowed) depending on routing
+            if response.status_code in [404, 405]:
+                self.log_result(
+                    "Download Error Cases - Empty ID",
+                    True,
+                    f"Correctly handled empty conversion ID with status {response.status_code}",
+                    {
+                        "status_code": response.status_code
+                    }
+                )
+            else:
+                self.log_result(
+                    "Download Error Cases - Empty ID",
+                    False,
+                    f"Unexpected status for empty ID: {response.status_code}",
+                    {
+                        "status_code": response.status_code,
+                        "response": response.text
+                    }
+                )
+        except Exception as e:
+            self.log_result(
+                "Download Error Cases - Empty ID",
+                False,
+                f"Exception testing empty ID: {str(e)}"
+            )
+    
+    def test_file_save_and_open(self):
+        """Test Step 4: Test that downloaded file can be saved and opened"""
+        print("\n=== Testing File Save and Open ===")
+        
+        if not self.conversion_id:
+            self.log_result(
+                "File Save and Open",
+                False,
+                "No conversion ID available for testing"
+            )
+            return False
+        
+        try:
+            response = requests.get(f"{BASE_URL}/download-excel/{self.conversion_id}")
+            
+            if response.status_code == 200:
+                # Save file to temporary location
+                import tempfile
+                import openpyxl
+                
+                with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as temp_file:
+                    temp_file.write(response.content)
+                    temp_file_path = temp_file.name
+                
+                try:
+                    # Try to open the file with openpyxl to verify it's a valid Excel file
+                    workbook = openpyxl.load_workbook(temp_file_path)
+                    sheet_names = workbook.sheetnames
+                    
+                    # Get some basic info about the file
+                    first_sheet = workbook[sheet_names[0]] if sheet_names else None
+                    row_count = first_sheet.max_row if first_sheet else 0
+                    col_count = first_sheet.max_column if first_sheet else 0
+                    
+                    workbook.close()
+                    
+                    self.log_result(
+                        "File Save and Open",
+                        True,
+                        f"Successfully saved and opened Excel file",
+                        {
+                            "conversion_id": self.conversion_id,
+                            "file_path": temp_file_path,
+                            "sheet_count": len(sheet_names),
+                            "sheet_names": sheet_names,
+                            "first_sheet_rows": row_count,
+                            "first_sheet_cols": col_count
+                        }
+                    )
+                    
+                    # Clean up temp file
+                    os.unlink(temp_file_path)
+                    return True
+                    
+                except Exception as excel_error:
+                    self.log_result(
+                        "File Save and Open",
+                        False,
+                        f"File saved but could not be opened as Excel: {str(excel_error)}",
+                        {
+                            "conversion_id": self.conversion_id,
+                            "file_path": temp_file_path,
+                            "excel_error": str(excel_error)
+                        }
+                    )
+                    # Clean up temp file
+                    try:
+                        os.unlink(temp_file_path)
+                    except:
+                        pass
+                    return False
+            else:
+                self.log_result(
+                    "File Save and Open",
+                    False,
+                    f"Could not download file for save test: {response.status_code}",
+                    {"conversion_id": self.conversion_id}
+                )
+                return False
+        except Exception as e:
+            self.log_result(
+                "File Save and Open",
+                False,
+                f"Exception during file save and open test: {str(e)}"
+            )
+            return False
+    
+    def run_download_tests(self):
+        """Run all download functionality tests"""
+        print("🚀 Starting Download Functionality Tests")
+        print("=" * 80)
+        
+        # Run tests in sequence
+        if self.test_get_conversions_list():
+            self.test_download_excel_endpoint()
+            self.test_file_save_and_open()
+        
+        # Always test error cases
+        self.test_download_error_cases()
+        
+        # Print summary
+        self.print_summary()
+        
+        return self.test_results
+    
+    def print_summary(self):
+        """Print test summary"""
+        print("\n" + "=" * 80)
+        print("📊 DOWNLOAD FUNCTIONALITY TEST SUMMARY")
+        print("=" * 80)
+        
+        passed = sum(1 for result in self.test_results if result['success'])
+        failed = len(self.test_results) - passed
+        
+        print(f"Total Tests: {len(self.test_results)}")
+        print(f"✅ Passed: {passed}")
+        print(f"❌ Failed: {failed}")
+        print(f"Success Rate: {(passed/len(self.test_results)*100):.1f}%")
+        
+        if failed > 0:
+            print("\n🔍 FAILED TESTS:")
+            for result in self.test_results:
+                if not result['success']:
+                    print(f"  ❌ {result['test']}: {result['message']}")
+        
+        print("\n" + "=" * 80)
+
 if __name__ == "__main__":
     # Run file upload tests
     print("Running File Upload Tests...")

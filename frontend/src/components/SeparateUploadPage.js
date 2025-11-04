@@ -59,7 +59,7 @@ const SeparateUploadPage = () => {
     }
   }, []);
 
-  const handleDrop = useCallback(async (e) => {
+  const handleDrop = async (e) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
@@ -67,7 +67,7 @@ const SeparateUploadPage = () => {
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       await uploadFiles(e.dataTransfer.files);
     }
-  }, [activeTab]);
+  };
 
   const handleFileInput = async (e) => {
     if (e.target.files && e.target.files.length > 0) {

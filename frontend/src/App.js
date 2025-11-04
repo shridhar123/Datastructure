@@ -991,31 +991,58 @@ const ReportsPage = () => {
   };
 
   const downloadReport = async (reportId) => {
+    const loadingToast = toast.loading('Preparing report download...');
+    
     try {
+      console.log('Downloading report:', reportId);
       const response = await axios.get(`${API}/download-reconciliation-report/${reportId}`, {
-        responseType: 'blob'
+        responseType: 'blob',
+        timeout: 30000 // 30 second timeout
       });
+      
+      console.log('Response received:', response.status, response.headers);
+      
+      if (!response.data || response.data.size === 0) {
+        throw new Error('Downloaded report is empty');
+      }
       
       const blob = new Blob([response.data], { 
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
       });
       
+      console.log('Blob created, size:', blob.size);
+      
+      const filename = `Reconciliation_Report_${reportId.substring(0, 8)}.xlsx`;
+      
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `reconciliation_report_${reportId}.xlsx`);
+      link.download = filename; // Use .download instead of setAttribute
       document.body.appendChild(link);
+      
+      console.log('Triggering download:', filename);
       link.click();
       
       setTimeout(() => {
         window.URL.revokeObjectURL(url);
         link.remove();
-      }, 100);
+      }, 1000);
       
-      toast.success('Report downloaded!');
+      toast.dismiss(loadingToast);
+      toast.success(`✓ ${filename} downloaded successfully`, { duration: 4000 });
     } catch (error) {
+      toast.dismiss(loadingToast);
       console.error('Download error:', error);
-      toast.error('Failed to download report');
+      console.error('Error details:', error.response?.data, error.response?.status);
+      
+      let errorMsg = 'Failed to download report';
+      if (error.response?.status === 404) {
+        errorMsg = 'Report file not found. Please create a new reconciliation.';
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+      
+      toast.error(`❌ ${errorMsg}`, { duration: 5000 });
     }
   };
 

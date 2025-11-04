@@ -634,9 +634,9 @@ const ReconcilePage = () => {
               <SelectValue placeholder="Select ICyte report" />
             </SelectTrigger>
             <SelectContent>
-              {uploads.map((upload) => (
-                <SelectItem key={upload.id} value={upload.id}>
-                  {upload.filename}
+              {icyteFiles.map((file) => (
+                <SelectItem key={file.id} value={file.id}>
+                  {file.filename}
                 </SelectItem>
               ))}
             </SelectContent>

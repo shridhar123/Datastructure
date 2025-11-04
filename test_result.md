@@ -143,51 +143,63 @@ backend:
 frontend:
   - task: "Create SeparateUploadPage component with tabs"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/components/SeparateUploadPage.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Created new component with Client and ICyte tabs. Includes drag-and-drop upload, file type validation (ICyte doesn't accept PDFs), separate file lists, and file management actions (rename, delete)."
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: SeparateUploadPage component working perfectly. Tab functionality works correctly - Client tab active by default, proper tab switching, file count badges display correctly (Client Files 3, ICyte Files 2). Drop zone shows correct messages: Client tab 'Supports PDF, Excel, and CSV files', ICyte tab 'Supports Excel and CSV files only'. File segregation working - Client tab shows 3 files, ICyte tab shows 2 files. File management actions (rename, delete) are present and functional."
 
   - task: "Replace UnifiedUploadPage with SeparateUploadPage in routing"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/App.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Updated App.js to import and use SeparateUploadPage instead of UnifiedUploadPage in the /upload route."
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: Routing working correctly. SeparateUploadPage loads when navigating to /upload route. Navigation between pages maintains state correctly."
 
   - task: "Update ReconcilePage to fetch and display files by source"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/frontend/src/App.js"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Modified ReconcilePage to fetch Client and ICyte files separately using file_source query parameter. Updated Client dropdown to show both conversions and uploaded Client files. Updated ICyte dropdown to show only ICyte uploaded files."
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL ISSUE: ICyte dropdown filtering not working correctly. ICyte dropdown shows both Client and ICyte files instead of only ICyte files. Found items: ['client_data.xlsx', 'icyte_report.csv'] - both files appear in ICyte dropdown when only ICyte files should be shown. Client dropdown works correctly with proper sections: 'Converted Files' and 'Uploaded Client Files'."
 
   - task: "Add CSS styles for upload tabs"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/frontend/src/App.css"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Added CSS styles for .upload-tabs, .upload-tab, and .file-count to create a clean tabbed interface."
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: CSS styles working correctly. Tab styling shows active/inactive states properly, file count badges display correctly, overall UI appearance is clean and functional."
 
 metadata:
   created_by: "main_agent"

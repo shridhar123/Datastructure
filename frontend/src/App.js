@@ -804,9 +804,28 @@ const ReconcilePage = () => {
           ))}
         </div>
 
-        <Button onClick={handleReconcile} disabled={processing} className="reconcile-btn" data-testid="perform-reconcile-btn">
-          {processing ? 'Processing...' : 'Perform Reconciliation'}
+        <Button 
+          onClick={handleReconcile} 
+          disabled={
+            processing || 
+            !clientFileId || 
+            !icyteFileId || 
+            !clientSheet || 
+            !icyteSheet || 
+            !clientUniqueKey || 
+            !icyteUniqueKey || 
+            mappings.length === 0
+          } 
+          className="reconcile-btn" 
+          data-testid="perform-reconcile-btn"
+        >
+          {processing ? 'Processing...' : 'Run Reconciliation'}
         </Button>
+        {(!clientFileId || !icyteFileId || !clientSheet || !icyteSheet || !clientUniqueKey || !icyteUniqueKey || mappings.length === 0) && (
+          <p style={{ fontSize: '0.875rem', color: '#6B7280', marginTop: '0.5rem', textAlign: 'center' }}>
+            Select both source files, sheets, unique keys, and add at least one mapping to proceed
+          </p>
+        )}
       </Card>
 
       {/* Template Save Modal */}

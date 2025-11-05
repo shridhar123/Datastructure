@@ -1082,9 +1082,10 @@ body {
 /* Enhanced variance badge */
 .variance-badge {
   padding: 0.25rem 0.5rem;
-  background: #FEF3C7;
+  background: #FFFF00;
+  color: #000000;
   border-radius: 6px;
-  font-weight: 500;
+  font-weight: 600;
   font-family: 'Courier New', monospace;
 }
 

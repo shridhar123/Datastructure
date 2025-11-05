@@ -1492,6 +1492,528 @@ class DownloadFunctionalityTester:
         
         print("\n" + "=" * 80)
 
+class FormulaReconciliationTester:
+    def __init__(self):
+        self.test_results = []
+        self.client_file_id = None
+        self.icyte_file_id = None
+        self.config_id = None
+        self.report_id = None
+        
+    def log_result(self, test_name, success, message, details=None):
+        """Log test result"""
+        result = {
+            "test": test_name,
+            "success": success,
+            "message": message,
+            "details": details or {}
+        }
+        self.test_results.append(result)
+        status = "✅ PASS" if success else "❌ FAIL"
+        print(f"{status}: {test_name} - {message}")
+        if details:
+            print(f"   Details: {details}")
+    
+    def create_formula_test_files(self):
+        """Create test files specifically for formula-based reconciliation testing"""
+        test_files = {}
+        temp_dir = Path(tempfile.mkdtemp())
+        
+        # Create Client Excel file with NDC data for formula testing
+        client_excel_path = temp_dir / "formula_client_data.xlsx"
+        client_data = {
+            'NDC11': ['12345678901', '23456789012', '34567890123', '45678901234', '56789012345'],
+            'Drug_Name': ['Aspirin 325mg', 'Ibuprofen 200mg', 'Acetaminophen 500mg', 'Naproxen 220mg', 'Omeprazole 20mg'],
+            'Base_Quantity': [100, 250, 150, 75, 200],
+            'Bonus_Quantity': [10, 25, 15, 5, 20],
+            'Unit_Price': [0.15, 0.25, 0.20, 0.35, 0.40],
+            'Discount': [0.01, 0.02, 0.01, 0.03, 0.02],
+            'Manufacturer': ['Bayer', 'Advil', 'Tylenol', 'Aleve', 'Prilosec']
+        }
+        df_client = pd.DataFrame(client_data)
+        df_client.to_excel(client_excel_path, index=False, sheet_name='ClientData')
+        test_files['client_excel'] = client_excel_path
+        
+        # Create ICyte Excel file with matching structure for formula testing
+        icyte_excel_path = temp_dir / "formula_icyte_report.xlsx"
+        icyte_data = {
+            'NDC_Code': ['12345678901', '23456789012', '34567890123', '67890123456'],  # Last one is different
+            'Product_Name': ['Aspirin 325mg', 'Ibuprofen 200mg', 'Acetaminophen 500mg', 'Metformin 500mg'],
+            'Primary_Qty': [100, 250, 140, 100],  # Third one has variance (150 vs 140)
+            'Secondary_Qty': [10, 25, 20, 10],   # Third one has variance (15 vs 20)
+            'Cost_Per_Unit': [0.15, 0.25, 0.22, 0.30],  # Third one has variance (0.20 vs 0.22)
+            'Fee_Per_Unit': [0.01, 0.02, 0.015, 0.025],  # Third one has variance (0.01 vs 0.015)
+            'Supplier': ['Bayer Corp', 'Advil Inc', 'Tylenol LLC', 'Metformin Co']
+        }
+        df_icyte = pd.DataFrame(icyte_data)
+        df_icyte.to_excel(icyte_excel_path, index=False, sheet_name='ICyteReport')
+        test_files['icyte_excel'] = icyte_excel_path
+        
+        return test_files
+    
+    def upload_formula_test_files(self, test_files):
+        """Upload test files for formula reconciliation"""
+        print("\n=== Uploading Formula Test Files ===")
+        
+        # Upload Client file
+        try:
+            with open(test_files['client_excel'], 'rb') as f:
+                files = {'files': (test_files['client_excel'].name, f, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
+                data = {'file_source': 'Client'}
+                
+                response = requests.post(f"{BASE_URL}/upload-files", files=files, data=data)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    uploaded_files = result.get('uploaded_files', [])
+                    if uploaded_files:
+                        self.client_file_id = uploaded_files[0]['id']
+                        self.log_result(
+                            "Upload Formula Client File",
+                            True,
+                            f"Successfully uploaded client file: {uploaded_files[0]['filename']}",
+                            {"file_id": self.client_file_id}
+                        )
+                    else:
+                        self.log_result("Upload Formula Client File", False, "No files returned")
+                        return False
+                else:
+                    self.log_result("Upload Formula Client File", False, f"Upload failed: {response.status_code}")
+                    return False
+        except Exception as e:
+            self.log_result("Upload Formula Client File", False, f"Exception: {str(e)}")
+            return False
+        
+        # Upload ICyte file
+        try:
+            with open(test_files['icyte_excel'], 'rb') as f:
+                files = {'files': (test_files['icyte_excel'].name, f, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
+                data = {'file_source': 'ICyte'}
+                
+                response = requests.post(f"{BASE_URL}/upload-files", files=files, data=data)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    uploaded_files = result.get('uploaded_files', [])
+                    if uploaded_files:
+                        self.icyte_file_id = uploaded_files[0]['id']
+                        self.log_result(
+                            "Upload Formula ICyte File",
+                            True,
+                            f"Successfully uploaded ICyte file: {uploaded_files[0]['filename']}",
+                            {"file_id": self.icyte_file_id}
+                        )
+                    else:
+                        self.log_result("Upload Formula ICyte File", False, "No files returned")
+                        return False
+                else:
+                    self.log_result("Upload Formula ICyte File", False, f"Upload failed: {response.status_code}")
+                    return False
+        except Exception as e:
+            self.log_result("Upload Formula ICyte File", False, f"Exception: {str(e)}")
+            return False
+        
+        return True
+    
+    def test_verify_available_files(self):
+        """Test Step 1: Verify Available Files"""
+        print("\n=== Testing Verify Available Files ===")
+        
+        # Test GET /api/conversions
+        try:
+            response = requests.get(f"{BASE_URL}/conversions")
+            if response.status_code == 200:
+                conversions = response.json().get('conversions', [])
+                conversion_id = conversions[0]['id'] if conversions else None
+                self.log_result(
+                    "Verify Conversions Available",
+                    True,
+                    f"Retrieved {len(conversions)} conversion files",
+                    {"count": len(conversions), "sample_id": conversion_id}
+                )
+            else:
+                self.log_result("Verify Conversions Available", False, f"Failed: {response.status_code}")
+        except Exception as e:
+            self.log_result("Verify Conversions Available", False, f"Exception: {str(e)}")
+        
+        # Test GET /api/uploads?file_source=ICyte
+        try:
+            response = requests.get(f"{BASE_URL}/uploads?file_source=ICyte")
+            if response.status_code == 200:
+                icyte_files = response.json().get('uploads', [])
+                self.log_result(
+                    "Verify ICyte Files Available",
+                    True,
+                    f"Retrieved {len(icyte_files)} ICyte files",
+                    {"count": len(icyte_files), "files": [f['filename'] for f in icyte_files]}
+                )
+            else:
+                self.log_result("Verify ICyte Files Available", False, f"Failed: {response.status_code}")
+        except Exception as e:
+            self.log_result("Verify ICyte Files Available", False, f"Exception: {str(e)}")
+    
+    def test_get_sheet_information(self):
+        """Test Step 2: Get Sheet Information"""
+        print("\n=== Testing Get Sheet Information ===")
+        
+        if not self.client_file_id or not self.icyte_file_id:
+            self.log_result("Get Sheet Information", False, "Missing file IDs for testing")
+            return False
+        
+        # Test Client file sheets
+        try:
+            response = requests.get(f"{BASE_URL}/excel-sheets/{self.client_file_id}")
+            if response.status_code == 200:
+                sheets_info = response.json().get('sheets', {})
+                if sheets_info:
+                    client_sheets = list(sheets_info.keys())
+                    client_columns = sheets_info.get('ClientData', [])
+                    self.log_result(
+                        "Get Client Sheet Information",
+                        True,
+                        f"Retrieved client sheets and columns",
+                        {"sheets": client_sheets, "columns": client_columns}
+                    )
+                else:
+                    self.log_result("Get Client Sheet Information", False, "No sheets returned")
+                    return False
+            else:
+                self.log_result("Get Client Sheet Information", False, f"Failed: {response.status_code}")
+                return False
+        except Exception as e:
+            self.log_result("Get Client Sheet Information", False, f"Exception: {str(e)}")
+            return False
+        
+        # Test ICyte file sheets
+        try:
+            response = requests.get(f"{BASE_URL}/excel-sheets/{self.icyte_file_id}")
+            if response.status_code == 200:
+                sheets_info = response.json().get('sheets', {})
+                if sheets_info:
+                    icyte_sheets = list(sheets_info.keys())
+                    icyte_columns = sheets_info.get('ICyteReport', [])
+                    self.log_result(
+                        "Get ICyte Sheet Information",
+                        True,
+                        f"Retrieved ICyte sheets and columns",
+                        {"sheets": icyte_sheets, "columns": icyte_columns}
+                    )
+                else:
+                    self.log_result("Get ICyte Sheet Information", False, "No sheets returned")
+                    return False
+            else:
+                self.log_result("Get ICyte Sheet Information", False, f"Failed: {response.status_code}")
+                return False
+        except Exception as e:
+            self.log_result("Get ICyte Sheet Information", False, f"Exception: {str(e)}")
+            return False
+        
+        return True
+    
+    def test_configure_reconciliation_with_formula(self):
+        """Test Step 3: Configure Reconciliation with Formula Format"""
+        print("\n=== Testing Configure Reconciliation with Formula Format ===")
+        
+        if not self.client_file_id or not self.icyte_file_id:
+            self.log_result("Configure Formula Reconciliation", False, "Missing file IDs for configuration")
+            return False
+        
+        # Create reconciliation configuration with new formula format
+        config_data = {
+            "client_file_id": self.client_file_id,
+            "icyte_file_id": self.icyte_file_id,
+            "client_sheet": "ClientData",
+            "icyte_sheet": "ICyteReport",
+            "client_unique_key": "NDC11",
+            "icyte_unique_key": "NDC_Code",
+            "mappings": [
+                {
+                    "label": "Total Quantity",
+                    "client_formula": [
+                        {"column": "Base_Quantity", "operation": None},
+                        {"column": "Bonus_Quantity", "operation": "add"}
+                    ],
+                    "icyte_formula": [
+                        {"column": "Primary_Qty", "operation": None},
+                        {"column": "Secondary_Qty", "operation": "add"}
+                    ]
+                },
+                {
+                    "label": "Net Unit Price",
+                    "client_formula": [
+                        {"column": "Unit_Price", "operation": None},
+                        {"column": "Discount", "operation": "subtract"}
+                    ],
+                    "icyte_formula": [
+                        {"column": "Cost_Per_Unit", "operation": None},
+                        {"column": "Fee_Per_Unit", "operation": "subtract"}
+                    ]
+                }
+            ]
+        }
+        
+        try:
+            response = requests.post(f"{BASE_URL}/configure-reconciliation", json=config_data)
+            if response.status_code == 200:
+                config_result = response.json()
+                self.config_id = config_result.get('id')
+                if self.config_id:
+                    self.log_result(
+                        "Configure Formula Reconciliation",
+                        True,
+                        f"Successfully created formula-based reconciliation configuration",
+                        {
+                            "config_id": self.config_id, 
+                            "mappings": len(config_data['mappings']),
+                            "formula_mappings": [m['label'] for m in config_data['mappings']]
+                        }
+                    )
+                    return True
+                else:
+                    self.log_result("Configure Formula Reconciliation", False, "No config ID returned")
+                    return False
+            else:
+                self.log_result("Configure Formula Reconciliation", False, f"Failed: {response.status_code} - {response.text}")
+                return False
+        except Exception as e:
+            self.log_result("Configure Formula Reconciliation", False, f"Exception: {str(e)}")
+            return False
+    
+    def test_perform_formula_reconciliation(self):
+        """Test Step 4: Perform Reconciliation"""
+        print("\n=== Testing Perform Formula Reconciliation ===")
+        
+        if not self.config_id:
+            self.log_result("Perform Formula Reconciliation", False, "Missing config ID for reconciliation")
+            return False
+        
+        try:
+            response = requests.post(f"{BASE_URL}/perform-reconciliation/{self.config_id}")
+            if response.status_code == 200:
+                report_result = response.json()
+                self.report_id = report_result.get('id')
+                
+                # Verify response contains report data
+                required_fields = ['id', 'total_records', 'matched_records', 'variances', 'column_headers', 'exceptions']
+                missing_fields = [field for field in required_fields if field not in report_result]
+                
+                if missing_fields:
+                    self.log_result(
+                        "Perform Formula Reconciliation",
+                        False,
+                        f"Missing required fields in response: {missing_fields}",
+                        report_result
+                    )
+                    return False
+                
+                # Verify formula-based column names are present
+                column_headers = report_result.get('column_headers', {})
+                mappings = column_headers.get('mappings', [])
+                
+                formula_columns_found = []
+                for mapping in mappings:
+                    client_label = mapping.get('client_label', '')
+                    icyte_label = mapping.get('icyte_label', '')
+                    variance_label = mapping.get('variance_label', '')
+                    
+                    if 'Total Quantity' in client_label or 'Net Unit Price' in client_label:
+                        formula_columns_found.append(client_label)
+                    if 'Total Quantity' in icyte_label or 'Net Unit Price' in icyte_label:
+                        formula_columns_found.append(icyte_label)
+                    if 'Total Quantity' in variance_label or 'Net Unit Price' in variance_label:
+                        formula_columns_found.append(variance_label)
+                
+                if len(formula_columns_found) < 4:  # Should have at least 2 formulas * 2 sides
+                    self.log_result(
+                        "Perform Formula Reconciliation",
+                        False,
+                        f"Formula-based column names not found properly. Found: {formula_columns_found}",
+                        {"column_headers": column_headers}
+                    )
+                    return False
+                
+                # Check for any 404 errors in response
+                if 'error' in report_result or 'detail' in report_result:
+                    self.log_result(
+                        "Perform Formula Reconciliation",
+                        False,
+                        f"Error in reconciliation response: {report_result.get('detail', report_result.get('error'))}",
+                        report_result
+                    )
+                    return False
+                
+                self.log_result(
+                    "Perform Formula Reconciliation",
+                    True,
+                    f"Successfully performed formula-based reconciliation",
+                    {
+                        "report_id": self.report_id,
+                        "total_records": report_result.get('total_records'),
+                        "matched_records": report_result.get('matched_records'),
+                        "variances": report_result.get('variances'),
+                        "formula_columns_found": len(formula_columns_found),
+                        "no_404_errors": True
+                    }
+                )
+                return True
+            else:
+                self.log_result("Perform Formula Reconciliation", False, f"Failed: {response.status_code} - {response.text}")
+                return False
+        except Exception as e:
+            self.log_result("Perform Formula Reconciliation", False, f"Exception: {str(e)}")
+            return False
+    
+    def test_verify_formula_report(self):
+        """Test Step 5: Verify Report"""
+        print("\n=== Testing Verify Formula Report ===")
+        
+        if not self.report_id:
+            self.log_result("Verify Formula Report", False, "Missing report ID for verification")
+            return False
+        
+        # Test GET /api/reconciliation-reports
+        try:
+            response = requests.get(f"{BASE_URL}/reconciliation-reports")
+            if response.status_code == 200:
+                reports_list = response.json().get('reports', [])
+                
+                # Check if our report appears in the list
+                our_report = None
+                for report in reports_list:
+                    if report.get('id') == self.report_id:
+                        our_report = report
+                        break
+                
+                if our_report:
+                    self.log_result(
+                        "Verify Report in List",
+                        True,
+                        f"Formula report appears in list (total: {len(reports_list)} reports)",
+                        {"our_report_id": self.report_id, "total_reports": len(reports_list)}
+                    )
+                else:
+                    self.log_result(
+                        "Verify Report in List",
+                        False,
+                        f"Our formula report not found in list of {len(reports_list)} reports",
+                        {"report_ids": [r.get('id') for r in reports_list]}
+                    )
+            else:
+                self.log_result("Verify Report in List", False, f"Failed: {response.status_code}")
+        except Exception as e:
+            self.log_result("Verify Report in List", False, f"Exception: {str(e)}")
+        
+        # Test GET /api/reconciliation-report/{report_id}
+        try:
+            response = requests.get(f"{BASE_URL}/reconciliation-report/{self.report_id}")
+            if response.status_code == 200:
+                report_data = response.json()
+                
+                # Verify report has proper structure with formula-based columns
+                exceptions = report_data.get('exceptions', [])
+                if exceptions:
+                    first_row = exceptions[0]
+                    
+                    # Check for formula-based column names
+                    formula_columns = [col for col in first_row.keys() if 
+                                     'Total Quantity' in col or 'Net Unit Price' in col]
+                    
+                    if len(formula_columns) >= 4:  # Should have Client:, ICyte:, Variance, Matched for each formula
+                        self.log_result(
+                            "Verify Formula Report Structure",
+                            True,
+                            f"Report has proper formula-based structure with {len(formula_columns)} formula columns",
+                            {
+                                "report_id": self.report_id,
+                                "formula_columns": formula_columns,
+                                "total_columns": len(first_row.keys())
+                            }
+                        )
+                    else:
+                        self.log_result(
+                            "Verify Formula Report Structure",
+                            False,
+                            f"Insufficient formula columns found: {len(formula_columns)}",
+                            {"found_columns": list(first_row.keys())}
+                        )
+                else:
+                    self.log_result(
+                        "Verify Formula Report Structure",
+                        True,
+                        "Report structure verified (no exceptions to check)",
+                        {"report_id": self.report_id}
+                    )
+            else:
+                self.log_result("Verify Formula Report Structure", False, f"Failed: {response.status_code}")
+        except Exception as e:
+            self.log_result("Verify Formula Report Structure", False, f"Exception: {str(e)}")
+    
+    def cleanup_formula_test_files(self):
+        """Clean up test files"""
+        print("\n=== Cleaning Up Formula Test Files ===")
+        
+        for file_id, file_type in [(self.client_file_id, "Client"), (self.icyte_file_id, "ICyte")]:
+            if file_id:
+                try:
+                    response = requests.delete(f"{BASE_URL}/file/{file_id}")
+                    if response.status_code == 200:
+                        print(f"✅ Cleaned up {file_type} formula test file {file_id}")
+                    else:
+                        print(f"⚠️  Failed to clean up {file_type} formula test file {file_id}: {response.status_code}")
+                except Exception as e:
+                    print(f"⚠️  Exception cleaning up {file_type} formula test file {file_id}: {str(e)}")
+    
+    def run_formula_reconciliation_tests(self):
+        """Run complete formula reconciliation workflow tests"""
+        print("🚀 Starting Formula Reconciliation Tests")
+        print("=" * 80)
+        
+        # Create and upload test files
+        test_files = self.create_formula_test_files()
+        print(f"📁 Created formula test files: {list(test_files.keys())}")
+        
+        if not self.upload_formula_test_files(test_files):
+            print("❌ Failed to upload formula test files - aborting tests")
+            return self.test_results
+        
+        # Run workflow tests
+        self.test_verify_available_files()
+        
+        if self.test_get_sheet_information():
+            if self.test_configure_reconciliation_with_formula():
+                if self.test_perform_formula_reconciliation():
+                    self.test_verify_formula_report()
+        
+        # Print summary
+        self.print_summary()
+        
+        # Cleanup
+        self.cleanup_formula_test_files()
+        
+        return self.test_results
+    
+    def print_summary(self):
+        """Print test summary"""
+        print("\n" + "=" * 80)
+        print("📊 FORMULA RECONCILIATION TEST SUMMARY")
+        print("=" * 80)
+        
+        passed = sum(1 for result in self.test_results if result['success'])
+        failed = len(self.test_results) - passed
+        
+        print(f"Total Tests: {len(self.test_results)}")
+        print(f"✅ Passed: {passed}")
+        print(f"❌ Failed: {failed}")
+        print(f"Success Rate: {(passed/len(self.test_results)*100):.1f}%")
+        
+        if failed > 0:
+            print("\n🔍 FAILED TESTS:")
+            for result in self.test_results:
+                if not result['success']:
+                    print(f"  ❌ {result['test']}: {result['message']}")
+        
+        print("\n" + "=" * 80)
+
 if __name__ == "__main__":
     # Run download functionality tests (as requested)
     print("Running Download Functionality Tests...")

@@ -610,6 +610,27 @@ body {
   background: #145A73;
 }
 
+/* Report Actions */
+.report-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.report-actions .delete-btn {
+  background: transparent;
+  color: #EF4444;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.report-actions .delete-btn:hover {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+
 /* Report Details */
 .report-details {
   display: flex;

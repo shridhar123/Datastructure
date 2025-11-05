@@ -1025,12 +1025,28 @@ async def perform_reconciliation(config_id: str):
         }
         for mapping in config['mappings']:
             # Support both old and new format
-            client_cols = mapping.get('client_columns', [mapping.get('client_column')]) if mapping.get('client_columns') else [mapping.get('client_column')]
-            icyte_cols = mapping.get('icyte_columns', [mapping.get('icyte_column')]) if mapping.get('icyte_columns') else [mapping.get('icyte_column')]
+            client_formula = mapping.get('client_formula')
+            icyte_formula = mapping.get('icyte_formula')
             
-            # Create label from multiple columns
-            client_label_base = mapping.get('label') or ' + '.join(client_cols) if len(client_cols) > 1 else client_cols[0]
-            icyte_label_base = mapping.get('label') or ' + '.join(icyte_cols) if len(icyte_cols) > 1 else icyte_cols[0]
+            # Fallback to old format if no formula provided
+            if not client_formula:
+                client_cols = mapping.get('client_columns', [mapping.get('client_column')]) if mapping.get('client_columns') else [mapping.get('client_column')]
+                client_formula = [{'column': col, 'operation': None} for col in client_cols if col]
+            
+            if not icyte_formula:
+                icyte_cols = mapping.get('icyte_columns', [mapping.get('icyte_column')]) if mapping.get('icyte_columns') else [mapping.get('icyte_column')]
+                icyte_formula = [{'column': col, 'operation': None} for col in icyte_cols if col]
+            
+            # Create label from formula or custom label
+            if mapping.get('label'):
+                client_label_base = mapping['label']
+                icyte_label_base = mapping['label']
+            else:
+                # Create label from formula columns
+                client_cols = [step['column'] for step in client_formula if step.get('column')]
+                icyte_cols = [step['column'] for step in icyte_formula if step.get('column')]
+                client_label_base = ' + '.join(client_cols) if len(client_cols) > 1 else client_cols[0] if client_cols else 'Unknown'
+                icyte_label_base = ' + '.join(icyte_cols) if len(icyte_cols) > 1 else icyte_cols[0] if icyte_cols else 'Unknown'
             
             column_headers["mappings"].append({
                 "client_label": f"Client: {client_label_base}",

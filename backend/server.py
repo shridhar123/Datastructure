@@ -979,11 +979,19 @@ async def perform_reconciliation(config_id: str):
             "mappings": []
         }
         for mapping in config['mappings']:
+            # Support both old and new format
+            client_cols = mapping.get('client_columns', [mapping.get('client_column')]) if mapping.get('client_columns') else [mapping.get('client_column')]
+            icyte_cols = mapping.get('icyte_columns', [mapping.get('icyte_column')]) if mapping.get('icyte_columns') else [mapping.get('icyte_column')]
+            
+            # Create label from multiple columns
+            client_label_base = mapping.get('label') or ' + '.join(client_cols) if len(client_cols) > 1 else client_cols[0]
+            icyte_label_base = mapping.get('label') or ' + '.join(icyte_cols) if len(icyte_cols) > 1 else icyte_cols[0]
+            
             column_headers["mappings"].append({
-                "client_label": f"Client: {mapping['client_column']}",
-                "icyte_label": f"ICyte: {mapping['icyte_column']}",
-                "variance_label": f"Variance (Client - ICyte) [{mapping['client_column']}]",
-                "match_label": f"Matched [{mapping['client_column']}]"
+                "client_label": f"Client: {client_label_base}",
+                "icyte_label": f"ICyte: {icyte_label_base}",
+                "variance_label": f"Variance (Client - ICyte) [{client_label_base}]",
+                "match_label": f"Matched [{client_label_base}]"
             })
         
         # Create report

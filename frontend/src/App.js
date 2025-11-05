@@ -586,12 +586,34 @@ const ReconcilePage = () => {
   }, [icyteFileId]);
 
   const addMapping = () => {
-    setMappings([...mappings, { client_column: '', icyte_column: '', operation: '' }]);
+    setMappings([...mappings, { 
+      client_columns: [], 
+      icyte_columns: [], 
+      client_operation: 'none',
+      icyte_operation: 'none',
+      label: ''
+    }]);
   };
 
   const updateMapping = (index, field, value) => {
     const newMappings = [...mappings];
     newMappings[index][field] = value;
+    setMappings(newMappings);
+  };
+
+  const toggleColumnSelection = (index, side, column) => {
+    const newMappings = [...mappings];
+    const columnsKey = side === 'client' ? 'client_columns' : 'icyte_columns';
+    const currentColumns = newMappings[index][columnsKey] || [];
+    
+    if (currentColumns.includes(column)) {
+      // Remove column
+      newMappings[index][columnsKey] = currentColumns.filter(c => c !== column);
+    } else {
+      // Add column
+      newMappings[index][columnsKey] = [...currentColumns, column];
+    }
+    
     setMappings(newMappings);
   };
 

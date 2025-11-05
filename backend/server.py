@@ -796,16 +796,38 @@ async def perform_reconciliation(config_id: str):
             # Compare mapped columns
             row_exceptions = []
             for mapping in config['mappings']:
-                # Support both old format (single columns) and new format (multiple columns)
-                client_cols = mapping.get('client_columns', [mapping.get('client_column')]) if mapping.get('client_columns') else [mapping.get('client_column')]
-                icyte_cols = mapping.get('icyte_columns', [mapping.get('icyte_column')]) if mapping.get('icyte_columns') else [mapping.get('icyte_column')]
+                # Support both old format (single columns) and new format (formula)
+                client_formula = mapping.get('client_formula')
+                icyte_formula = mapping.get('icyte_formula')
                 
-                client_operation = mapping.get('client_operation', 'none')
-                icyte_operation = mapping.get('icyte_operation', 'none')
+                # Fallback to old format if no formula provided
+                if not client_formula:
+                    client_cols = mapping.get('client_columns', [mapping.get('client_column')]) if mapping.get('client_columns') else [mapping.get('client_column')]
+                    client_operation = mapping.get('client_operation', 'none')
+                    # Convert old format to new formula format
+                    client_formula = []
+                    for i, col in enumerate(client_cols):
+                        if col:
+                            client_formula.append({
+                                'column': col,
+                                'operation': None if i == 0 else client_operation
+                            })
                 
-                # Calculate values using multiple columns and operations
-                client_val = calculate_column_value(client_row, client_cols, client_operation)
-                icyte_val = calculate_column_value(icyte_row, icyte_cols, icyte_operation)
+                if not icyte_formula:
+                    icyte_cols = mapping.get('icyte_columns', [mapping.get('icyte_column')]) if mapping.get('icyte_columns') else [mapping.get('icyte_column')]
+                    icyte_operation = mapping.get('icyte_operation', 'none')
+                    # Convert old format to new formula format
+                    icyte_formula = []
+                    for i, col in enumerate(icyte_cols):
+                        if col:
+                            icyte_formula.append({
+                                'column': col,
+                                'operation': None if i == 0 else icyte_operation
+                            })
+                
+                # Calculate values using formula
+                client_val = evaluate_formula(client_row, client_formula, client_df.columns)
+                icyte_val = evaluate_formula(icyte_row, icyte_formula, icyte_df.columns)
                 
                 # Skip if both are NaN
                 if pd.isna(client_val) and pd.isna(icyte_val):

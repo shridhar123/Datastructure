@@ -2061,6 +2061,7 @@ if __name__ == "__main__":
     total_tests = total_formula_tests + total_download_tests + total_upload_tests + total_reconciliation_tests
     total_passed = passed_formula_tests + passed_download_tests + passed_upload_tests + passed_reconciliation_tests
     
+    print(f"Formula Reconciliation Tests: {passed_formula_tests}/{total_formula_tests} passed")
     print(f"Download Tests: {passed_download_tests}/{total_download_tests} passed")
     print(f"File Upload Tests: {passed_upload_tests}/{total_upload_tests} passed")
     print(f"Reconciliation Tests: {passed_reconciliation_tests}/{total_reconciliation_tests} passed")

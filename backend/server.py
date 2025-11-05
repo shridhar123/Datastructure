@@ -833,21 +833,7 @@ async def perform_reconciliation(config_id: str):
                 if pd.isna(client_val) and pd.isna(icyte_val):
                     continue
                 
-                # Apply operation if specified
-                if operation and client_val is not None and not pd.isna(client_val):
-                    try:
-                        if operation.startswith('multiply:'):
-                            factor = float(operation.split(':')[1])
-                            client_val = float(client_val) * factor
-                        elif operation.startswith('add:'):
-                            addend = float(operation.split(':')[1])
-                            client_val = float(client_val) + addend
-                        elif operation.startswith('subtract:'):
-                            subtrahend = float(operation.split(':')[1])
-                            client_val = float(client_val) - subtrahend
-                    except Exception as e:
-                        logger.warning(f"Operation failed for {key}: {e}")
-                
+                # Operations are now handled in evaluate_formula function
                 # Compare values with tolerance for floats
                 values_match = False
                 try:

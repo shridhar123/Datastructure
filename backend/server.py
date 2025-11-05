@@ -973,8 +973,15 @@ async def perform_reconciliation(config_id: str):
                         match_flag = "Unmatched"
                         all_matched = False
                 
-                # Create label from multiple columns or custom label
-                label = mapping.get('label') or (' + '.join(client_cols) if len(client_cols) > 1 else client_cols[0])
+                # Create label from formula or custom label
+                if mapping.get('label'):
+                    label = mapping['label']
+                elif client_formula and len(client_formula) > 0:
+                    # Create label from formula columns
+                    formula_cols = [step['column'] for step in client_formula if step.get('column')]
+                    label = ' + '.join(formula_cols) if len(formula_cols) > 1 else formula_cols[0] if formula_cols else 'Unknown'
+                else:
+                    label = 'Unknown'
                 
                 # Add columns with proper naming convention
                 # Client column with prefix

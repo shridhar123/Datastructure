@@ -1111,7 +1111,18 @@ const ReportsPage = () => {
                     </div>
                     <p className="report-date">{new Date(report.created_at).toLocaleString()}</p>
                   </div>
-                  <Button size="sm" data-testid={`view-report-btn-${report.id}`}>View Details</Button>
+                  <div className="report-actions">
+                    <Button size="sm" data-testid={`view-report-btn-${report.id}`}>View Details</Button>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="delete-btn"
+                      onClick={(e) => openDeleteReportModal(report.id, e)}
+                      data-testid={`delete-report-btn-${report.id}`}
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
                 </Card>
               ))}
             </div>

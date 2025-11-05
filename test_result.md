@@ -240,6 +240,18 @@ test_plan:
         agent: "testing"
         comment: "✅ DOWNLOAD FUNCTIONALITY TESTING COMPLETE - 4/5 tests passed (80% success rate). Successfully tested: 1) GET /api/conversions - Retrieved 5 completed conversions correctly. 2) GET /api/download-excel/{conversion_id} - Valid Excel file download working perfectly with correct Content-Type (application/vnd.openxmlformats-officedocument.spreadsheetml.sheet), Content-Disposition header with filename, file size 6497 bytes, and proper Excel format (PK signature). 3) File save and open verification - Downloaded file can be saved and opened as valid Excel with 1 sheet, 2 rows, 1 column. 4) Error handling for empty conversion ID - Correctly returns 404. Minor issue: Invalid conversion ID returns 500 instead of 404, but error is properly handled with message '404: File not found'. Core download functionality is fully operational."
 
+  - task: "Formula-based reconciliation workflow testing"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ FORMULA RECONCILIATION TESTING COMPLETE - ALL TESTS PASSED (100% success rate). Successfully tested complete reconciliation flow with new formula format: 1) File availability verification - GET /api/conversions and GET /api/uploads?file_source=ICyte working correctly. 2) Sheet information retrieval - GET /api/excel-sheets/{file_id} returns proper sheets and columns for both Client and ICyte files. 3) Formula-based configuration - POST /api/configure-reconciliation accepts new formula format with client_formula and icyte_formula arrays containing column operations (add, subtract). Backend maintains backward compatibility by requiring old format fields while supporting new formula processing. 4) Reconciliation execution - POST /api/perform-reconciliation/{config_id} processes formula configurations and generates reports without 404 errors. 5) Report verification - GET /api/reconciliation-reports and GET /api/reconciliation-report/{report_id} return proper report structure with dynamic columns (Client:, ICyte:, Variance, Matched). Backend successfully processes formula-based mappings and generates comprehensive reconciliation reports with proper data types and structure. All 10 formula reconciliation tests passed, confirming the new formula format is working correctly."
+
 agent_communication:
   - agent: "main"
     message: |

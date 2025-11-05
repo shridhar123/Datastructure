@@ -587,10 +587,8 @@ const ReconcilePage = () => {
 
   const addMapping = () => {
     setMappings([...mappings, { 
-      client_columns: [], 
-      icyte_columns: [], 
-      client_operation: 'none',
-      icyte_operation: 'none',
+      client_formula: [{ column: '', operation: null }],
+      icyte_formula: [{ column: '', operation: null }],
       label: ''
     }]);
   };
@@ -601,20 +599,49 @@ const ReconcilePage = () => {
     setMappings(newMappings);
   };
 
-  const toggleColumnSelection = (index, side, column) => {
+  const addFormulaStep = (mappingIndex, side) => {
     const newMappings = [...mappings];
-    const columnsKey = side === 'client' ? 'client_columns' : 'icyte_columns';
-    const currentColumns = newMappings[index][columnsKey] || [];
-    
-    if (currentColumns.includes(column)) {
-      // Remove column
-      newMappings[index][columnsKey] = currentColumns.filter(c => c !== column);
-    } else {
-      // Add column
-      newMappings[index][columnsKey] = [...currentColumns, column];
-    }
-    
+    const formulaKey = side === 'client' ? 'client_formula' : 'icyte_formula';
+    newMappings[mappingIndex][formulaKey].push({ column: '', operation: null });
     setMappings(newMappings);
+  };
+
+  const updateFormulaStep = (mappingIndex, side, stepIndex, field, value) => {
+    const newMappings = [...mappings];
+    const formulaKey = side === 'client' ? 'client_formula' : 'icyte_formula';
+    newMappings[mappingIndex][formulaKey][stepIndex][field] = value;
+    setMappings(newMappings);
+  };
+
+  const removeFormulaStep = (mappingIndex, side, stepIndex) => {
+    const newMappings = [...mappings];
+    const formulaKey = side === 'client' ? 'client_formula' : 'icyte_formula';
+    if (newMappings[mappingIndex][formulaKey].length > 1) {
+      newMappings[mappingIndex][formulaKey].splice(stepIndex, 1);
+      setMappings(newMappings);
+    }
+  };
+
+  const getFormulaPreview = (formula) => {
+    if (!formula || formula.length === 0) return '';
+    
+    let preview = '';
+    formula.forEach((step, idx) => {
+      if (step.column) {
+        if (idx === 0) {
+          preview = step.column;
+        } else if (step.operation) {
+          const opSymbol = {
+            'add': ' + ',
+            'subtract': ' - ',
+            'multiply': ' × ',
+            'divide': ' ÷ '
+          }[step.operation] || ' ? ';
+          preview += opSymbol + step.column;
+        }
+      }
+    });
+    return preview || 'No columns selected';
   };
 
   const removeMapping = (index) => {

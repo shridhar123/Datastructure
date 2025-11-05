@@ -2015,7 +2015,14 @@ class FormulaReconciliationTester:
         print("\n" + "=" * 80)
 
 if __name__ == "__main__":
-    # Run download functionality tests (as requested)
+    # Run formula reconciliation tests (as requested)
+    print("🎯 Running Formula Reconciliation Tests (New Formula Format)...")
+    formula_tester = FormulaReconciliationTester()
+    formula_results = formula_tester.run_formula_reconciliation_tests()
+    
+    print("\n" + "="*100 + "\n")
+    
+    # Run download functionality tests
     print("Running Download Functionality Tests...")
     download_tester = DownloadFunctionalityTester()
     download_results = download_tester.run_download_tests()
@@ -2039,6 +2046,9 @@ if __name__ == "__main__":
     print("🎯 COMBINED TEST SUMMARY")
     print("="*100)
     
+    total_formula_tests = len(formula_results)
+    passed_formula_tests = sum(1 for result in formula_results if result['success'])
+    
     total_download_tests = len(download_results)
     passed_download_tests = sum(1 for result in download_results if result['success'])
     
@@ -2048,8 +2058,8 @@ if __name__ == "__main__":
     total_reconciliation_tests = len(reconciliation_results)
     passed_reconciliation_tests = sum(1 for result in reconciliation_results if result['success'])
     
-    total_tests = total_download_tests + total_upload_tests + total_reconciliation_tests
-    total_passed = passed_download_tests + passed_upload_tests + passed_reconciliation_tests
+    total_tests = total_formula_tests + total_download_tests + total_upload_tests + total_reconciliation_tests
+    total_passed = passed_formula_tests + passed_download_tests + passed_upload_tests + passed_reconciliation_tests
     
     print(f"Download Tests: {passed_download_tests}/{total_download_tests} passed")
     print(f"File Upload Tests: {passed_upload_tests}/{total_upload_tests} passed")

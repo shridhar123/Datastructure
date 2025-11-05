@@ -1016,6 +1016,30 @@ async def get_reconciliation_report(report_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.delete("/reconciliation-report/{report_id}")
+async def delete_reconciliation_report(report_id: str):
+    """Delete a reconciliation report"""
+    try:
+        report = await db.reconciliation_reports.find_one({"id": report_id})
+        if not report:
+            raise HTTPException(status_code=404, detail="Report not found")
+        
+        # Delete physical report file if it exists
+        report_file_path = report.get('report_file_path')
+        if report_file_path and os.path.exists(report_file_path):
+            os.remove(report_file_path)
+            logger.info(f"Deleted report file: {report_file_path}")
+        
+        # Delete from database
+        await db.reconciliation_reports.delete_one({"id": report_id})
+        
+        return {"message": "Report deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Delete report error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.get("/uploads")
 async def get_uploads(file_source: Optional[str] = None):
     """Get all uploads, optionally filtered by file_source (Client or ICyte)"""

@@ -610,6 +610,48 @@ async def perform_reconciliation(config_id: str):
     """Perform reconciliation based on saved configuration with unique key matching"""
     try:
         # Helper function to detect header row
+        def calculate_column_value(row, columns: list, operation: str):
+            """Calculate value from multiple columns with specified operation"""
+            try:
+                values = []
+                for col in columns:
+                    val = row.get(col)
+                    if val is not None and not pd.isna(val):
+                        # Try to convert to numeric
+                        try:
+                            values.append(float(val))
+                        except (ValueError, TypeError):
+                            values.append(val)
+                
+                if not values:
+                    return None
+                
+                # If only one column or no operation, return first value
+                if len(values) == 1 or operation == 'none' or not operation:
+                    return values[0]
+                
+                # Apply mathematical operation
+                result = values[0]
+                for val in values[1:]:
+                    if operation == 'add':
+                        result = result + val
+                    elif operation == 'subtract':
+                        result = result - val
+                    elif operation == 'multiply':
+                        result = result * val
+                    elif operation == 'divide':
+                        if val != 0:
+                            result = result / val
+                        else:
+                            return None  # Division by zero
+                    else:
+                        return result  # Unknown operation, return first value
+                
+                return result
+            except Exception as e:
+                logger.error(f"Error calculating column value: {str(e)}")
+                return None
+
         def find_header_row(file_path, sheet_name):
             """Find the row index where headers are located"""
             wb = openpyxl.load_workbook(file_path, data_only=False)

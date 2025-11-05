@@ -926,35 +926,25 @@ async def perform_reconciliation(config_id: str):
             # Process each mapping
             all_matched = True
             for mapping in config['mappings']:
-                client_col = mapping['client_column']
-                icyte_col = mapping['icyte_column']
-                operation = mapping.get('operation')
+                # Support both old format (single columns) and new format (formula)
+                client_formula = mapping.get('client_formula')
+                icyte_formula = mapping.get('icyte_formula')
                 
-                # Get values
-                client_val = client_row.get(client_col) if client_row is not None and client_col in client_df.columns else None
-                icyte_val = icyte_row.get(icyte_col) if icyte_row is not None and icyte_col in icyte_df.columns else None
+                # Fallback to old format if no formula provided
+                if not client_formula:
+                    client_col = mapping.get('client_column')
+                    operation = mapping.get('operation')
+                    if client_col:
+                        client_formula = [{'column': client_col, 'operation': None}]
                 
-                # Check for missing columns
-                if client_row is not None and client_col not in client_df.columns:
-                    warnings.append(f"Column '{client_col}' not found in client file")
-                if icyte_row is not None and icyte_col not in icyte_df.columns:
-                    warnings.append(f"Column '{icyte_col}' not found in ICyte file")
+                if not icyte_formula:
+                    icyte_col = mapping.get('icyte_column')
+                    if icyte_col:
+                        icyte_formula = [{'column': icyte_col, 'operation': None}]
                 
-                # Apply operation if specified
-                original_client_val = client_val
-                if operation and client_val is not None and not pd.isna(client_val):
-                    try:
-                        if operation.startswith('multiply:'):
-                            factor = float(operation.split(':')[1])
-                            client_val = float(client_val) * factor
-                        elif operation.startswith('add:'):
-                            addend = float(operation.split(':')[1])
-                            client_val = float(client_val) + addend
-                        elif operation.startswith('subtract:'):
-                            subtrahend = float(operation.split(':')[1])
-                            client_val = float(client_val) - subtrahend
-                    except Exception as e:
-                        logger.warning(f"Operation failed for {key}, {client_col}: {e}")
+                # Calculate values using formula
+                client_val = evaluate_formula(client_row, client_formula, client_df.columns) if client_row is not None else None
+                icyte_val = evaluate_formula(icyte_row, icyte_formula, icyte_df.columns) if icyte_row is not None else None
                 
                 # Calculate variance and match flag
                 variance_value = None

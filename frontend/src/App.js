@@ -1264,6 +1264,18 @@ const ReportsPage = () => {
           </Card>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={closeDeleteReportModal}
+        onConfirm={handleDeleteReport}
+        title="Delete Report"
+        message={`Are you sure you want to delete "${deleteModal.reportName}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDestructive={true}
+      />
     </div>
   );
 };

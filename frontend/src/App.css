@@ -745,8 +745,8 @@ body {
 }
 
 .variance-badge {
-  background: #FF6B6B;
-  color: white;
+  background: #FFFF00;
+  color: #000000;
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
   font-size: 0.75rem;

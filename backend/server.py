@@ -879,11 +879,15 @@ async def perform_reconciliation(config_id: str):
                     # Determine result based on variance
                     result = "Matched" if variance_value == "0.00" else "Unmatched"
                     
+                    # Create column description from formula
+                    client_desc = ' + '.join([step['column'] for step in client_formula if step.get('column')]) if client_formula else 'Unknown'
+                    icyte_desc = ' + '.join([step['column'] for step in icyte_formula if step.get('column')]) if icyte_formula else 'Unknown'
+                    
                     row_exceptions.append({
                         "unique_key": key,
                         "result": result,
-                        "client_column": client_col,
-                        "icyte_column": icyte_col,
+                        "client_column": client_desc,
+                        "icyte_column": icyte_desc,
                         "client_value": str(client_val) if not pd.isna(client_val) else "N/A",
                         "icyte_value": str(icyte_val) if not pd.isna(icyte_val) else "N/A",
                         "variance": variance_value

@@ -610,46 +610,69 @@ async def perform_reconciliation(config_id: str):
     """Perform reconciliation based on saved configuration with unique key matching"""
     try:
         # Helper function to detect header row
-        def calculate_column_value(row, columns: list, operation: str):
-            """Calculate value from multiple columns with specified operation"""
+        def evaluate_formula(row, formula, df_columns):
+            """Evaluate a formula with sequential operations
+            Formula format: [
+                {'column': 'Name1', 'operation': None},
+                {'column': 'Name2', 'operation': 'add'},
+                {'column': 'Name3', 'operation': 'subtract'}
+            ]
+            """
             try:
-                values = []
-                for col in columns:
-                    val = row.get(col)
-                    if val is not None and not pd.isna(val):
-                        # Try to convert to numeric
-                        try:
-                            values.append(float(val))
-                        except (ValueError, TypeError):
-                            values.append(val)
-                
-                if not values:
+                if not formula or len(formula) == 0:
                     return None
                 
-                # If only one column or no operation, return first value
-                if len(values) == 1 or operation == 'none' or not operation:
-                    return values[0]
+                result = None
+                warnings = []
                 
-                # Apply mathematical operation
-                result = values[0]
-                for val in values[1:]:
-                    if operation == 'add':
-                        result = result + val
-                    elif operation == 'subtract':
-                        result = result - val
-                    elif operation == 'multiply':
-                        result = result * val
-                    elif operation == 'divide':
-                        if val != 0:
+                for idx, step in enumerate(formula):
+                    col = step.get('column')
+                    operation = step.get('operation')
+                    
+                    if not col:
+                        continue
+                    
+                    # Check if column exists
+                    if col not in df_columns:
+                        warnings.append(f"Column '{col}' not found")
+                        continue
+                    
+                    # Get value from row
+                    val = row.get(col)
+                    
+                    # Treat NULL as 0
+                    if val is None or pd.isna(val):
+                        val = 0
+                    
+                    # Convert to numeric
+                    try:
+                        val = float(val)
+                    except (ValueError, TypeError):
+                        warnings.append(f"Column '{col}' contains non-numeric value: {val}")
+                        return None
+                    
+                    # First column - initialize result
+                    if idx == 0:
+                        result = val
+                    else:
+                        # Apply operation
+                        if operation == 'add':
+                            result = result + val
+                        elif operation == 'subtract':
+                            result = result - val
+                        elif operation == 'multiply':
+                            result = result * val
+                        elif operation == 'divide':
+                            if val == 0:
+                                warnings.append(f"Division by zero: {col} = 0")
+                                return None
                             result = result / val
                         else:
-                            return None  # Division by zero
-                    else:
-                        return result  # Unknown operation, return first value
+                            warnings.append(f"Unknown operation: {operation}")
                 
                 return result
             except Exception as e:
-                logger.error(f"Error calculating column value: {str(e)}")
+                logger.error(f"Error evaluating formula: {str(e)}")
                 return None
 
         def find_header_row(file_path, sheet_name):

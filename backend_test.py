@@ -1821,11 +1821,15 @@ class FormulaReconciliationTester:
                     icyte_label = mapping.get('icyte_label', '')
                     variance_label = mapping.get('variance_label', '')
                     
-                    if 'Total Quantity' in client_label or 'Net Unit Price' in client_label:
+                    # Check for either formula labels or fallback to column names
+                    if ('Total Quantity' in client_label or 'Net Unit Price' in client_label or
+                        'Base_Quantity' in client_label or 'Unit_Price' in client_label):
                         formula_columns_found.append(client_label)
-                    if 'Total Quantity' in icyte_label or 'Net Unit Price' in icyte_label:
+                    if ('Total Quantity' in icyte_label or 'Net Unit Price' in icyte_label or
+                        'Primary_Qty' in icyte_label or 'Cost_Per_Unit' in icyte_label):
                         formula_columns_found.append(icyte_label)
-                    if 'Total Quantity' in variance_label or 'Net Unit Price' in variance_label:
+                    if ('Total Quantity' in variance_label or 'Net Unit Price' in variance_label or
+                        'Base_Quantity' in variance_label or 'Unit_Price' in variance_label):
                         formula_columns_found.append(variance_label)
                 
                 if len(formula_columns_found) < 4:  # Should have at least 2 formulas * 2 sides

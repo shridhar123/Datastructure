@@ -923,7 +923,6 @@ async def perform_reconciliation(config_id: str):
                 # Fallback to old format if no formula provided
                 if not client_formula:
                     client_col = mapping.get('client_column')
-                    operation = mapping.get('operation')
                     if client_col:
                         client_formula = [{'column': client_col, 'operation': None}]
                 

@@ -1719,6 +1719,7 @@ class FormulaReconciliationTester:
             return False
         
         # Create reconciliation configuration with new formula format
+        # Note: Backend still requires old format fields for validation, but supports new formula format in processing
         config_data = {
             "client_file_id": self.client_file_id,
             "icyte_file_id": self.icyte_file_id,
@@ -1729,6 +1730,8 @@ class FormulaReconciliationTester:
             "mappings": [
                 {
                     "label": "Total Quantity",
+                    "client_column": "Base_Quantity",  # Required for validation
+                    "icyte_column": "Primary_Qty",    # Required for validation
                     "client_formula": [
                         {"column": "Base_Quantity", "operation": None},
                         {"column": "Bonus_Quantity", "operation": "add"}
@@ -1740,6 +1743,8 @@ class FormulaReconciliationTester:
                 },
                 {
                     "label": "Net Unit Price",
+                    "client_column": "Unit_Price",    # Required for validation
+                    "icyte_column": "Cost_Per_Unit",  # Required for validation
                     "client_formula": [
                         {"column": "Unit_Price", "operation": None},
                         {"column": "Discount", "operation": "subtract"}

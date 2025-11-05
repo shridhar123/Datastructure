@@ -1047,6 +1047,39 @@ const ReportsPage = () => {
     }
   };
 
+  const openDeleteReportModal = (reportId, e) => {
+    e.stopPropagation(); // Prevent triggering the card click
+    const reportName = `Report ${reportId.substring(0, 8)}`;
+    setDeleteModal({ isOpen: true, reportId, reportName });
+  };
+
+  const closeDeleteReportModal = () => {
+    setDeleteModal({ isOpen: false, reportId: null, reportName: '' });
+  };
+
+  const handleDeleteReport = async () => {
+    const reportId = deleteModal.reportId;
+    closeDeleteReportModal();
+
+    // Optimistic update - remove from UI immediately
+    setReports(reports.filter(r => r.id !== reportId));
+    
+    // If viewing the deleted report, go back to list
+    if (selectedReport && selectedReport.id === reportId) {
+      setSelectedReport(null);
+    }
+
+    try {
+      await axios.delete(`${API}/reconciliation-report/${reportId}`);
+      toast.success('✓ Report deleted successfully');
+      await fetchReports(); // Refresh the list
+    } catch (error) {
+      console.error('Delete report error:', error);
+      toast.error('❌ Unable to delete report. Please try again later.');
+      await fetchReports(); // Restore on error
+    }
+  };
+
   return (
     <div className="page-container" data-testid="reports-page">
       <h1 className="page-title">Reconciliation Reports</h1>

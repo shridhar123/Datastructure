@@ -967,6 +967,7 @@ const ReconcilePage = () => {
 const ReportsPage = () => {
   const [reports, setReports] = useState([]);
   const [selectedReport, setSelectedReport] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, reportId: null, reportName: '' });
 
   useEffect(() => {
     fetchReports();

@@ -855,53 +855,102 @@ const ReconcilePage = () => {
           </div>
 
           {mappings.map((mapping, index) => (
-            <Card key={index} className="mapping-item">
-              <div className="mapping-fields">
-                <div className="mapping-field">
-                  <label>Client Column</label>
-                  <Select value={mapping.client_column} onValueChange={(val) => updateMapping(index, 'client_column', val)}>
-                    <SelectTrigger data-testid={`client-column-select-${index}`}>
-                      <SelectValue placeholder="Select column" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clientSheet && clientSheets[clientSheet]?.map((col) => (
-                        <SelectItem key={col} value={col}>
-                          {col}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="mapping-field">
-                  <label>ICyte Column</label>
-                  <Select value={mapping.icyte_column} onValueChange={(val) => updateMapping(index, 'icyte_column', val)}>
-                    <SelectTrigger data-testid={`icyte-column-select-${index}`}>
-                      <SelectValue placeholder="Select column" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {icyteSheet && icyteSheets[icyteSheet]?.map((col) => (
-                        <SelectItem key={col} value={col}>
-                          {col}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="mapping-field">
-                  <label>Operation (Optional)</label>
-                  <Input
-                    value={mapping.operation}
-                    onChange={(e) => updateMapping(index, 'operation', e.target.value)}
-                    placeholder="e.g., multiply:2"
-                    data-testid={`operation-input-${index}`}
-                  />
-                </div>
-
+            <Card key={index} className="mapping-item enhanced">
+              <div className="mapping-header-row">
+                <h4>Mapping #{index + 1}</h4>
                 <Button variant="destructive" size="sm" onClick={() => removeMapping(index)} data-testid={`remove-mapping-btn-${index}`}>
-                  <X size={16} />
+                  <X size={16} /> Remove
                 </Button>
+              </div>
+
+              <div className="mapping-label-field">
+                <label>Mapping Label (Optional)</label>
+                <Input
+                  value={mapping.label || ''}
+                  onChange={(e) => updateMapping(index, 'label', e.target.value)}
+                  placeholder="e.g., Total Sales, Net Amount"
+                  data-testid={`mapping-label-${index}`}
+                />
+              </div>
+
+              <div className="mapping-columns-row">
+                {/* Client Side */}
+                <div className="mapping-side">
+                  <h5>Client Columns</h5>
+                  <div className="column-checkboxes">
+                    {clientSheet && clientSheets[clientSheet]?.map((col) => (
+                      <label key={col} className="column-checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={mapping.client_columns?.includes(col) || false}
+                          onChange={() => toggleColumnSelection(index, 'client', col)}
+                          data-testid={`client-col-${index}-${col}`}
+                        />
+                        <span>{col}</span>
+                      </label>
+                    ))}
+                  </div>
+                  
+                  {mapping.client_columns?.length > 1 && (
+                    <div className="operation-field">
+                      <label>Mathematical Operation</label>
+                      <Select 
+                        value={mapping.client_operation || 'none'} 
+                        onValueChange={(val) => updateMapping(index, 'client_operation', val)}
+                      >
+                        <SelectTrigger data-testid={`client-operation-${index}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None (use first column)</SelectItem>
+                          <SelectItem value="add">➕ Addition (+)</SelectItem>
+                          <SelectItem value="subtract">➖ Subtraction (-)</SelectItem>
+                          <SelectItem value="multiply">✖️ Multiplication (×)</SelectItem>
+                          <SelectItem value="divide">➗ Division (÷)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+
+                {/* ICyte Side */}
+                <div className="mapping-side">
+                  <h5>ICyte Columns</h5>
+                  <div className="column-checkboxes">
+                    {icyteSheet && icyteSheets[icyteSheet]?.map((col) => (
+                      <label key={col} className="column-checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={mapping.icyte_columns?.includes(col) || false}
+                          onChange={() => toggleColumnSelection(index, 'icyte', col)}
+                          data-testid={`icyte-col-${index}-${col}`}
+                        />
+                        <span>{col}</span>
+                      </label>
+                    ))}
+                  </div>
+                  
+                  {mapping.icyte_columns?.length > 1 && (
+                    <div className="operation-field">
+                      <label>Mathematical Operation</label>
+                      <Select 
+                        value={mapping.icyte_operation || 'none'} 
+                        onValueChange={(val) => updateMapping(index, 'icyte_operation', val)}
+                      >
+                        <SelectTrigger data-testid={`icyte-operation-${index}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None (use first column)</SelectItem>
+                          <SelectItem value="add">➕ Addition (+)</SelectItem>
+                          <SelectItem value="subtract">➖ Subtraction (-)</SelectItem>
+                          <SelectItem value="multiply">✖️ Multiplication (×)</SelectItem>
+                          <SelectItem value="divide">➗ Division (÷)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
               </div>
             </Card>
           ))}

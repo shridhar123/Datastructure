@@ -674,7 +674,9 @@ const ReconcilePage = () => {
       toast.success('Reconciliation completed!');
       window.location.href = '/reports';
     } catch (error) {
-      toast.error('Failed to perform reconciliation');
+      console.error('Reconciliation error:', error);
+      const errorMsg = error.response?.data?.detail || error.message || 'Failed to perform reconciliation';
+      toast.error(`❌ ${errorMsg}`, { duration: 5000 });
     } finally {
       setProcessing(false);
     }

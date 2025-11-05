@@ -773,12 +773,16 @@ async def perform_reconciliation(config_id: str):
             # Compare mapped columns
             row_exceptions = []
             for mapping in config['mappings']:
-                client_col = mapping['client_column']
-                icyte_col = mapping['icyte_column']
-                operation = mapping.get('operation')
+                # Support both old format (single columns) and new format (multiple columns)
+                client_cols = mapping.get('client_columns', [mapping.get('client_column')]) if mapping.get('client_columns') else [mapping.get('client_column')]
+                icyte_cols = mapping.get('icyte_columns', [mapping.get('icyte_column')]) if mapping.get('icyte_columns') else [mapping.get('icyte_column')]
                 
-                client_val = client_row.get(client_col) if client_col in client_df.columns else None
-                icyte_val = icyte_row.get(icyte_col) if icyte_col in icyte_df.columns else None
+                client_operation = mapping.get('client_operation', 'none')
+                icyte_operation = mapping.get('icyte_operation', 'none')
+                
+                # Calculate values using multiple columns and operations
+                client_val = calculate_column_value(client_row, client_cols, client_operation)
+                icyte_val = calculate_column_value(icyte_row, icyte_cols, icyte_operation)
                 
                 # Skip if both are NaN
                 if pd.isna(client_val) and pd.isna(icyte_val):

@@ -654,6 +654,18 @@ const ReconcilePage = () => {
       return;
     }
 
+    // Validate mappings have at least one column selected
+    for (let i = 0; i < mappings.length; i++) {
+      const mapping = mappings[i];
+      const clientHasColumns = mapping.client_formula?.some(step => step.column);
+      const icyteHasColumns = mapping.icyte_formula?.some(step => step.column);
+      
+      if (!clientHasColumns || !icyteHasColumns) {
+        toast.error(`Mapping #${i + 1}: Please select at least one column for both Client and ICyte sides`);
+        return;
+      }
+    }
+
     setProcessing(true);
     try {
       // Save configuration

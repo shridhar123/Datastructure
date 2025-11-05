@@ -903,80 +903,138 @@ const ReconcilePage = () => {
               <div className="mapping-columns-row">
                 {/* Client Side */}
                 <div className="mapping-side">
-                  <h5>Client Columns</h5>
-                  <div className="column-checkboxes">
-                    {clientSheet && clientSheets[clientSheet]?.map((col) => (
-                      <label key={col} className="column-checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={mapping.client_columns?.includes(col) || false}
-                          onChange={() => toggleColumnSelection(index, 'client', col)}
-                          data-testid={`client-col-${index}-${col}`}
-                        />
-                        <span>{col}</span>
-                      </label>
-                    ))}
-                  </div>
+                  <h5>Client Formula</h5>
                   
-                  {mapping.client_columns?.length > 1 && (
-                    <div className="operation-field">
-                      <label>Mathematical Operation</label>
-                      <Select 
-                        value={mapping.client_operation || 'none'} 
-                        onValueChange={(val) => updateMapping(index, 'client_operation', val)}
-                      >
-                        <SelectTrigger data-testid={`client-operation-${index}`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">None (use first column)</SelectItem>
-                          <SelectItem value="add">➕ Addition (+)</SelectItem>
-                          <SelectItem value="subtract">➖ Subtraction (-)</SelectItem>
-                          <SelectItem value="multiply">✖️ Multiplication (×)</SelectItem>
-                          <SelectItem value="divide">➗ Division (÷)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
+                  <div className="formula-preview">
+                    <strong>Preview:</strong> {getFormulaPreview(mapping.client_formula)}
+                  </div>
+
+                  <div className="formula-builder">
+                    {mapping.client_formula?.map((step, stepIdx) => (
+                      <div key={stepIdx} className="formula-step">
+                        {stepIdx > 0 && (
+                          <Select 
+                            value={step.operation || ''} 
+                            onValueChange={(val) => updateFormulaStep(index, 'client', stepIdx, 'operation', val)}
+                          >
+                            <SelectTrigger className="operation-selector" data-testid={`client-op-${index}-${stepIdx}`}>
+                              <SelectValue placeholder="Op" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="add">+</SelectItem>
+                              <SelectItem value="subtract">-</SelectItem>
+                              <SelectItem value="multiply">×</SelectItem>
+                              <SelectItem value="divide">÷</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                        
+                        <Select 
+                          value={step.column || ''} 
+                          onValueChange={(val) => updateFormulaStep(index, 'client', stepIdx, 'column', val)}
+                        >
+                          <SelectTrigger className="column-selector" data-testid={`client-col-${index}-${stepIdx}`}>
+                            <SelectValue placeholder="Select column" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {clientSheet && clientSheets[clientSheet]?.map((col) => (
+                              <SelectItem key={col} value={col}>
+                                {col}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        {mapping.client_formula.length > 1 && (
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => removeFormulaStep(index, 'client', stepIdx)}
+                            className="remove-step-btn"
+                          >
+                            <X size={14} />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => addFormulaStep(index, 'client')}
+                      className="add-step-btn"
+                    >
+                      <Plus size={14} /> Add Column
+                    </Button>
+                  </div>
                 </div>
 
                 {/* ICyte Side */}
                 <div className="mapping-side">
-                  <h5>ICyte Columns</h5>
-                  <div className="column-checkboxes">
-                    {icyteSheet && icyteSheets[icyteSheet]?.map((col) => (
-                      <label key={col} className="column-checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={mapping.icyte_columns?.includes(col) || false}
-                          onChange={() => toggleColumnSelection(index, 'icyte', col)}
-                          data-testid={`icyte-col-${index}-${col}`}
-                        />
-                        <span>{col}</span>
-                      </label>
-                    ))}
-                  </div>
+                  <h5>ICyte Formula</h5>
                   
-                  {mapping.icyte_columns?.length > 1 && (
-                    <div className="operation-field">
-                      <label>Mathematical Operation</label>
-                      <Select 
-                        value={mapping.icyte_operation || 'none'} 
-                        onValueChange={(val) => updateMapping(index, 'icyte_operation', val)}
-                      >
-                        <SelectTrigger data-testid={`icyte-operation-${index}`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">None (use first column)</SelectItem>
-                          <SelectItem value="add">➕ Addition (+)</SelectItem>
-                          <SelectItem value="subtract">➖ Subtraction (-)</SelectItem>
-                          <SelectItem value="multiply">✖️ Multiplication (×)</SelectItem>
-                          <SelectItem value="divide">➗ Division (÷)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
+                  <div className="formula-preview">
+                    <strong>Preview:</strong> {getFormulaPreview(mapping.icyte_formula)}
+                  </div>
+
+                  <div className="formula-builder">
+                    {mapping.icyte_formula?.map((step, stepIdx) => (
+                      <div key={stepIdx} className="formula-step">
+                        {stepIdx > 0 && (
+                          <Select 
+                            value={step.operation || ''} 
+                            onValueChange={(val) => updateFormulaStep(index, 'icyte', stepIdx, 'operation', val)}
+                          >
+                            <SelectTrigger className="operation-selector" data-testid={`icyte-op-${index}-${stepIdx}`}>
+                              <SelectValue placeholder="Op" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="add">+</SelectItem>
+                              <SelectItem value="subtract">-</SelectItem>
+                              <SelectItem value="multiply">×</SelectItem>
+                              <SelectItem value="divide">÷</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                        
+                        <Select 
+                          value={step.column || ''} 
+                          onValueChange={(val) => updateFormulaStep(index, 'icyte', stepIdx, 'column', val)}
+                        >
+                          <SelectTrigger className="column-selector" data-testid={`icyte-col-${index}-${stepIdx}`}>
+                            <SelectValue placeholder="Select column" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {icyteSheet && icyteSheets[icyteSheet]?.map((col) => (
+                              <SelectItem key={col} value={col}>
+                                {col}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        {mapping.icyte_formula.length > 1 && (
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => removeFormulaStep(index, 'icyte', stepIdx)}
+                            className="remove-step-btn"
+                          >
+                            <X size={14} />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => addFormulaStep(index, 'icyte')}
+                      className="add-step-btn"
+                    >
+                      <Plus size={14} /> Add Column
+                    </Button>
+                  </div>
                 </div>
               </div>
             </Card>

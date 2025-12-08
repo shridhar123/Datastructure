@@ -1465,6 +1465,7 @@ function App() {
             <Link to="/upload" data-testid="nav-upload"><Upload size={18} /> Upload</Link>
             <Link to="/convert" data-testid="nav-convert"><FileText size={18} /> Convert</Link>
             <Link to="/reconcile" data-testid="nav-reconcile"><Settings size={18} /> Reconcile</Link>
+            <Link to="/column-mappings" data-testid="nav-column-mappings"><Settings size={18} /> Column Mappings</Link>
             <Link to="/reports" data-testid="nav-reports"><BarChart3 size={18} /> Reports</Link>
           </div>
         </nav>

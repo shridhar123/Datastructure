@@ -1639,7 +1639,7 @@ const ReportsPage = () => {
             <Button onClick={() => setSelectedReport(null)} className="back-btn" data-testid="back-to-reports-btn">
               ← Back to Reports
             </Button>
-            <Button onClick={() => downloadReport(selectedReport.id)} data-testid="download-report-btn">
+            <Button onClick={() => downloadReport(selectedReport.id, selectedReport.filename)} data-testid="download-report-btn">
               <Download size={16} style={{marginRight: '0.5rem'}} /> Download Report (Excel)
             </Button>
           </div>

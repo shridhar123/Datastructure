@@ -1038,6 +1038,113 @@ async def perform_reconciliation(config_id: str):
                 client_label_base = mapping['label']
                 icyte_label_base = mapping['label']
             else:
+
+
+@api_router.post("/save-column-mappings")
+async def save_column_mappings(data: dict):
+    """Save column mappings configuration"""
+    try:
+        mapping_id = str(uuid.uuid4())
+        doc = {
+            "id": mapping_id,
+            "client_file_id": data['client_file_id'],
+            "icyte_file_id": data['icyte_file_id'],
+            "client_sheet": data['client_sheet'],
+            "icyte_sheet": data['icyte_sheet'],
+            "mappings": data['mappings'],
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.column_mappings.insert_one(doc)
+        return {"id": mapping_id, "message": "Mappings saved successfully"}
+    except Exception as e:
+        logger.error(f"Save mappings error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/upload-column-mappings")
+async def upload_column_mappings(
+    file: UploadFile = File(...),
+    client_columns: str = Form(...),
+    icyte_columns: str = Form(...)
+):
+    """Upload and parse column mappings from CSV file"""
+    try:
+        import csv
+        import json
+        
+        # Parse available columns
+        client_cols = json.loads(client_columns)
+        icyte_cols = json.loads(icyte_columns)
+        
+        # Read CSV file
+        content = await file.read()
+        decoded = content.decode('utf-8')
+        reader = csv.DictReader(decoded.splitlines())
+        
+        matched_mappings = []
+        unmatched_columns = []
+        
+        for row in reader:
+            client_expr = row.get('ClientExpression', '').strip()
+            icyte_col = row.get('ICyteColumn', '').strip()
+            label = row.get('Label', '').strip()
+            
+            if not client_expr or not icyte_col:
+                continue
+            
+            # Parse client expression
+            # Split by operators while keeping the operators
+            import re
+            tokens = re.split(r'(\s*[\+\-\*\/]\s*)', client_expr)
+            tokens = [t.strip() for t in tokens if t.strip()]
+            
+            client_expression = []
+            current_column = None
+            unmatched_in_expr = []
+            
+            for i, token in enumerate(tokens):
+                if token in ['+', '-', '*', '/']:
+                    # Map operator symbols to operation names
+                    op_map = {'+': 'add', '-': 'subtract', '*': 'multiply', '/': 'divide'}
+                    operation = op_map.get(token)
+                else:
+                    # This is a column name
+                    if token in client_cols:
+                        if i == 0:
+                            client_expression.append({'column': token, 'operation': None})
+                        else:
+                            # Add to previous step
+                            if len(client_expression) > 0:
+                                client_expression.append({'column': token, 'operation': client_expression[-1].get('next_op')})
+                            else:
+                                client_expression.append({'column': token, 'operation': None})
+                    else:
+                        unmatched_in_expr.append(('Client', token))
+            
+            # Check ICyte column
+            if icyte_col not in icyte_cols:
+                unmatched_columns.append({'side': 'ICyte', 'column': icyte_col})
+            
+            # Add unmatched from expression
+            for side, col in unmatched_in_expr:
+                unmatched_columns.append({'side': side, 'column': col})
+            
+            # Only add mapping if all columns matched
+            if len(unmatched_in_expr) == 0 and icyte_col in icyte_cols and len(client_expression) > 0:
+                matched_mappings.append({
+                    'clientExpression': client_expression,
+                    'icyteColumn': icyte_col,
+                    'label': label
+                })
+        
+        return {
+            "matched_mappings": matched_mappings,
+            "unmatched_columns": unmatched_columns,
+            "total_rows": len(matched_mappings) + len(unmatched_columns)
+        }
+    except Exception as e:
+        logger.error(f"Upload mappings error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
                 # Create label from formula columns
                 client_cols = [step['column'] for step in client_formula if step.get('column')]
                 icyte_cols = [step['column'] for step in icyte_formula if step.get('column')]

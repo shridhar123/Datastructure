@@ -614,9 +614,12 @@ async def configure_reconciliation(config: ReconciliationConfig):
 
 @api_router.post("/perform-reconciliation/{config_id}")
 async def perform_reconciliation(config_id: str):
-    """Perform reconciliation based on saved configuration with unique key matching"""
+    """Perform reconciliation based on saved configuration - generates report with variance calculation and formatting"""
     try:
-        # Helper function to detect header row
+        from openpyxl.styles import PatternFill, Font
+        from datetime import datetime
+        
+        # Helper function to evaluate formula with math operations
         def evaluate_formula(row, formula, df_columns):
             """Evaluate a formula with sequential operations
             Formula format: [

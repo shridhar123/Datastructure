@@ -2730,13 +2730,14 @@ class UpdatedReconciliationTester:
                     return False
                 
                 # Check for new column structure: ICyte_<column>, Client_<column>, Variance_<column>
+                # The backend uses the actual column names, not the labels
                 expected_column_patterns = [
-                    'ICyte_Net Sales Calculation',
-                    'Client_Net Sales Calculation', 
-                    'Variance_Net Sales Calculation',
-                    'ICyte_Return Amount',
-                    'Client_Return Amount',
-                    'Variance_Return Amount'
+                    'ICyte_SalesAmount',
+                    'Client_SalesAmount', 
+                    'Variance_SalesAmount',
+                    'ICyte_ReturnAmount',
+                    'Client_ReturnAmount',
+                    'Variance_ReturnAmount'
                 ]
                 
                 found_columns = []

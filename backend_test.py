@@ -2783,10 +2783,10 @@ class UpdatedReconciliationTester:
                 
                 # Verify variance calculation: Variance = ICyte_Result - Client_Result
                 variance_calculation_issues = []
-                for mapping_label in ['Net Sales Calculation', 'Return Amount']:
-                    icyte_col = f'ICyte_{mapping_label}'
-                    client_col = f'Client_{mapping_label}'
-                    variance_col = f'Variance_{mapping_label}'
+                for mapping_col in ['SalesAmount', 'ReturnAmount']:
+                    icyte_col = f'ICyte_{mapping_col}'
+                    client_col = f'Client_{mapping_col}'
+                    variance_col = f'Variance_{mapping_col}'
                     
                     if all(col in first_row for col in [icyte_col, client_col, variance_col]):
                         icyte_val = first_row[icyte_col]

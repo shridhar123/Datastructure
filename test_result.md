@@ -252,6 +252,18 @@ test_plan:
         agent: "testing"
         comment: "✅ FORMULA RECONCILIATION TESTING COMPLETE - ALL TESTS PASSED (100% success rate). Successfully tested complete reconciliation flow with new formula format: 1) File availability verification - GET /api/conversions and GET /api/uploads?file_source=ICyte working correctly. 2) Sheet information retrieval - GET /api/excel-sheets/{file_id} returns proper sheets and columns for both Client and ICyte files. 3) Formula-based configuration - POST /api/configure-reconciliation accepts new formula format with client_formula and icyte_formula arrays containing column operations (add, subtract). Backend maintains backward compatibility by requiring old format fields while supporting new formula processing. 4) Reconciliation execution - POST /api/perform-reconciliation/{config_id} processes formula configurations and generates reports without 404 errors. 5) Report verification - GET /api/reconciliation-reports and GET /api/reconciliation-report/{report_id} return proper report structure with dynamic columns (Client:, ICyte:, Variance, Matched). Backend successfully processes formula-based mappings and generates comprehensive reconciliation reports with proper data types and structure. All 10 formula reconciliation tests passed, confirming the new formula format is working correctly."
 
+  - task: "Column Mappings feature - Save, retrieve, and upload mappings"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ COLUMN MAPPINGS FEATURE TESTING COMPLETE - ALL TESTS PASSED (100% success rate). Successfully tested all new Column Mappings endpoints: 1) POST /api/save-column-mappings - Successfully saves column mappings with new formula format (client_formula arrays with operations). 2) GET /api/column-mappings - Retrieves all saved mappings correctly. 3) GET /api/column-mapping/{mapping_id} - Retrieves specific mapping by ID with proper structure validation. 4) POST /api/upload-column-mappings - Parses CSV mapping files and converts expressions to formula format, reports unmatched columns correctly. All endpoints return 200 status codes, handle the new formula format properly, and maintain backward compatibility. The feature supports complex expressions like 'SalesAmount - ReturnAmount' and converts them to structured formula arrays. Database operations work correctly with proper ID generation and data persistence."
+
 agent_communication:
   - agent: "main"
     message: |

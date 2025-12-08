@@ -617,6 +617,7 @@ async def perform_reconciliation(config_id: str):
     """Perform reconciliation based on saved configuration - generates report with variance calculation and formatting"""
     try:
         from openpyxl.styles import PatternFill, Font
+        import openpyxl.utils
         from datetime import datetime
         
         # Helper function to evaluate formula with math operations

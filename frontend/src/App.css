@@ -398,6 +398,14 @@ body {
 }
 
 .conversion-date {
+
+.section-description {
+  font-size: 0.875rem;
+  color: #64748B;
+  margin-bottom: 0.75rem;
+  margin-top: -0.5rem;
+}
+
   font-size: 0.875rem;
   color: #5A6C7D;
 }

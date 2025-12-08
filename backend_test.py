@@ -2799,7 +2799,7 @@ class UpdatedReconciliationTester:
                             
                             if abs(expected_variance - actual_variance) > 1e-6:
                                 variance_calculation_issues.append(
-                                    f"{mapping_label}: Expected {expected_variance}, got {actual_variance} "
+                                    f"{mapping_col}: Expected {expected_variance}, got {actual_variance} "
                                     f"(ICyte: {icyte_val}, Client: {client_val})"
                                 )
                 

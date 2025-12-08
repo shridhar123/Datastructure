@@ -1047,11 +1047,12 @@ async def save_column_mappings(data: dict):
         mapping_id = str(uuid.uuid4())
         doc = {
             "id": mapping_id,
-            "client_file_id": data['client_file_id'],
-            "icyte_file_id": data['icyte_file_id'],
-            "client_sheet": data['client_sheet'],
-            "icyte_sheet": data['icyte_sheet'],
-            "mappings": data['mappings'],
+            "name": data.get('name', 'Untitled Mapping'),
+            "client_file_id": data.get('client_file_id'),
+            "icyte_file_id": data.get('icyte_file_id'),
+            "client_sheet": data.get('client_sheet'),
+            "icyte_sheet": data.get('icyte_sheet'),
+            "mappings": data.get('mappings', []),
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.column_mappings.insert_one(doc)

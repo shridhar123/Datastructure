@@ -464,6 +464,10 @@ const ReconcilePage = () => {
   const [templates, setTemplates] = useState([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [showSaveModal, setShowSaveModal] = useState(false);
+  
+  // Column Mappings
+  const [savedColumnMappings, setSavedColumnMappings] = useState([]);
+  const [selectedColumnMapping, setSelectedColumnMapping] = useState('');
 
   useEffect(() => {
     fetchConversions();

@@ -1133,6 +1133,32 @@ async def upload_column_mappings(
                 matched_mappings.append({
                     'clientExpression': client_expression,
                     'icyteColumn': icyte_col,
+
+
+@api_router.get("/column-mappings")
+async def get_column_mappings():
+    """Get all saved column mappings"""
+    try:
+        mappings = await db.column_mappings.find({}, {"_id": 0}).to_list(100)
+        return {"mappings": mappings}
+    except Exception as e:
+        logger.error(f"Get column mappings error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/column-mapping/{mapping_id}")
+async def get_column_mapping(mapping_id: str):
+    """Get a specific column mapping by ID"""
+    try:
+        mapping = await db.column_mappings.find_one({"id": mapping_id}, {"_id": 0})
+        if not mapping:
+            raise HTTPException(status_code=404, detail="Column mapping not found")
+        return mapping
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get column mapping error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
                     'label': label
                 })
         

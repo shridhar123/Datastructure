@@ -1131,7 +1131,7 @@ ColumnG / ColumnH,ICyte_Ratio,Division Example`;
 
         <div className="mappings-section">
           <div className="mappings-header">
-            <h3>Mappings</h3>
+            <h3>Column Mappings Builder</h3>
             <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center'}}>
               <Select value={selectedTemplateId} onValueChange={(val) => { setSelectedTemplateId(val); handleLoadTemplate(val); }}>
                 <SelectTrigger style={{width: '250px'}} data-testid="template-select">

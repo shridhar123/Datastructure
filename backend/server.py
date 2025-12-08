@@ -1099,48 +1099,54 @@ async def perform_reconciliation(config_id: str):
                 icyte_cols = mapping.get('icyte_columns', [mapping.get('icyte_column')]) if mapping.get('icyte_columns') else [mapping.get('icyte_column')]
                 icyte_formula = [{'column': col, 'operation': None} for col in icyte_cols if col]
             
-            # Create label from formula or custom label
+            # Build column header labels for frontend display
             if mapping.get('label'):
-                client_label_base = mapping['label']
-                icyte_label_base = mapping['label']
+                label_base = mapping['label']
+            elif client_formula and len(client_formula) > 0:
+                formula_cols = [step['column'] for step in client_formula if step.get('column')]
+                label_base = ' + '.join(formula_cols) if len(formula_cols) > 1 else formula_cols[0] if formula_cols else 'Unknown'
             else:
-                # Create label from formula columns
-                client_cols = [step['column'] for step in client_formula if step.get('column')]
-                icyte_cols = [step['column'] for step in icyte_formula if step.get('column')]
-                client_label_base = ' + '.join(client_cols) if len(client_cols) > 1 else client_cols[0] if client_cols else 'Unknown'
-                icyte_label_base = ' + '.join(icyte_cols) if len(icyte_cols) > 1 else icyte_cols[0] if icyte_cols else 'Unknown'
+                label_base = 'Unknown'
             
             column_headers["mappings"].append({
-                "client_label": f"Client: {client_label_base}",
-                "icyte_label": f"ICyte: {icyte_label_base}",
-                "variance_label": f"Variance (Client - ICyte) [{client_label_base}]",
-                "match_label": f"Matched [{client_label_base}]"
+                "icyte_label": f"ICyte_{label_base}",
+                "client_label": f"Client_{label_base}",
+                "variance_label": f"Variance_{label_base}"
             })
         
-        # Create report
+        # Create report object for database
         report = {
             "id": report_id,
             "config_id": config_id,
             "summary": {
                 "total_records": len(report_data),
                 "matched_count": matched_count,
-                "variance_count": variance_count
+                "variance_count": variance_count,
+                "filename": report_filename
             },
             "data": report_data,
             "column_headers": column_headers,
             "report_file_path": str(report_excel_path),
+            "filename": report_filename,
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         
         await db.reconciliation_reports.insert_one(report)
+        
+        logger.info(f"Reconciliation report generated: {report_filename}")
+        
         return {
             "report_id": report_id,
+            "filename": report_filename,
             "summary": report["summary"],
-            "column_headers": column_headers
+            "column_headers": column_headers,
+            "message": "Reconciliation completed successfully"
         }
         
     except Exception as e:
         logger.error(f"Reconciliation error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/save-column-mappings")

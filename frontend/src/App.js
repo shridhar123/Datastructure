@@ -1368,6 +1368,51 @@ ColumnG / ColumnH,ICyte_Ratio,Division Example`;
         )}
       </Card>
 
+      {/* Save Mapping Modal */}
+      {showSaveMappingModal && (
+        <div className="modal-overlay" data-testid="save-mapping-modal">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>Save Column Mapping</h3>
+              <button className="modal-close" onClick={() => setShowSaveMappingModal(false)} data-testid="close-mapping-modal-btn">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Mapping Name *</label>
+                <Input
+                  value={mappingName}
+                  onChange={(e) => setMappingName(e.target.value)}
+                  placeholder="e.g., Standard Sales Reconciliation"
+                  data-testid="mapping-name-input"
+                />
+              </div>
+              
+              <div className="template-preview">
+                <p><strong>Mappings to save:</strong> {mappings.length} column mapping(s)</p>
+                {clientSheet && icyteSheet && (
+                  <p style={{ fontSize: '0.875rem', color: '#6B7280', marginTop: '0.5rem' }}>
+                    Client Sheet: <strong>{clientSheet}</strong><br />
+                    ICyte Sheet: <strong>{icyteSheet}</strong>
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            <div className="modal-footer">
+              <Button variant="outline" onClick={() => setShowSaveMappingModal(false)} data-testid="cancel-mapping-save-btn">
+                Cancel
+              </Button>
+              <Button onClick={handleSaveColumnMapping} data-testid="save-mapping-confirm-btn">
+                Save Mapping
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Template Save Modal */}
       {showSaveModal && (
         <div className="modal-overlay" data-testid="template-save-modal">

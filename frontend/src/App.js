@@ -513,6 +513,41 @@ const ReconcilePage = () => {
     }
   };
 
+  const fetchSavedColumnMappings = async () => {
+    try {
+      const response = await axios.get(`${API}/column-mappings`);
+      setSavedColumnMappings(response.data.mappings || []);
+    } catch (error) {
+      console.error('Error fetching column mappings:', error);
+    }
+  };
+
+  const loadColumnMapping = async (mappingId) => {
+    try {
+      const response = await axios.get(`${API}/column-mapping/${mappingId}`);
+      const mapping = response.data;
+      
+      // Set files and sheets
+      setClientFileId(mapping.client_file_id);
+      setIcyteFileId(mapping.icyte_file_id);
+      setClientSheet(mapping.client_sheet);
+      setIcyteSheet(mapping.icyte_sheet);
+      
+      // Convert column mappings to reconciliation mappings format
+      const convertedMappings = mapping.mappings.map(m => ({
+        client_formula: m.clientExpression || [{ column: '', operation: null }],
+        icyte_formula: [{ column: m.icyteColumn || '', operation: null }],
+        label: m.label || ''
+      }));
+      
+      setMappings(convertedMappings);
+      toast.success('✓ Column mapping loaded successfully');
+    } catch (error) {
+      console.error('Error loading column mapping:', error);
+      toast.error('Failed to load column mapping');
+    }
+  };
+
   const handleSaveTemplate = async (name, description) => {
     if (mappings.length === 0) {
       toast.error('Please add at least one mapping');

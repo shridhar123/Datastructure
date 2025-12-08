@@ -264,6 +264,19 @@ test_plan:
         agent: "testing"
         comment: "✅ COLUMN MAPPINGS FEATURE TESTING COMPLETE - ALL TESTS PASSED (100% success rate). Successfully tested all new Column Mappings endpoints: 1) POST /api/save-column-mappings - Successfully saves column mappings with new formula format (client_formula arrays with operations). 2) GET /api/column-mappings - Retrieves all saved mappings correctly. 3) GET /api/column-mapping/{mapping_id} - Retrieves specific mapping by ID with proper structure validation. 4) POST /api/upload-column-mappings - Parses CSV mapping files and converts expressions to formula format, reports unmatched columns correctly. All endpoints return 200 status codes, handle the new formula format properly, and maintain backward compatibility. The feature supports complex expressions like 'SalesAmount - ReturnAmount' and converts them to structured formula arrays. Database operations work correctly with proper ID generation and data persistence."
 
+frontend:
+  - task: "Column Mappings UI - Complete frontend interface for managing column mappings"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ COLUMN MAPPINGS UI TESTING COMPLETE - ALL SCENARIOS PASSED (100% success rate). Comprehensive testing of all UI components: 1) Column Mappings Management section - VISIBLE with proper layout and styling. 2) Load Saved Mapping dropdown - FUNCTIONAL, shows saved mappings with count display. 3) Upload Mapping File UI - FUNCTIONAL, accepts only CSV files, Upload button properly disabled without file selection, Download Template button working. 4) Column Mappings Builder - FUNCTIONAL, Add Mapping creates new cards with vertical layout. 5) Client Expression section - VISIBLE with blue border (#3B82F6), includes preview area showing formula status. 6) ICyte Column section - VISIBLE with green border (#10B981), includes mapping logic explanation box. 7) Dynamic Expression Builder - Add Column to Expression button properly disabled without client sheet selection, column dropdowns show 'No columns available' when no files selected. 8) Save Current Mappings - FUNCTIONAL, modal opens with name input, Save/Cancel buttons working. 9) Remove mapping - FUNCTIONAL, Remove button successfully removes mappings. 10) Responsive design - WORKING on smaller screens (768x1024). 11) Visual validation - Clean professional design with proper color coding confirmed. All UI elements are properly styled, functional, and follow the expected behavior patterns."
+
 agent_communication:
   - agent: "main"
     message: |

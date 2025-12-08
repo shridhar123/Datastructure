@@ -901,36 +901,29 @@ async def perform_reconciliation(config_id: str):
         for item in only_in_icyte:
             exceptions.append(item)
         
-        # Create reconciliation report DataFrame for download with dynamic columns
-        report_data = []
-        warnings = []
+        # ====================
+        # GENERATE RECONCILIATION REPORT AS PER NEW SPECIFICATIONS
+        # ====================
         
-        # Build dynamic column structure for each mapping
+        report_data = []
+        
+        # Process each unique key (row)
         for key in all_keys:
             client_row = client_dict.get(key)
             icyte_row = icyte_dict.get(key)
             
-            # Base row data
+            # Base row with unique key
             row_data = {
                 config['client_unique_key']: key
             }
             
-            # Determine row status
-            if client_row is None:
-                row_status = "MISSING_IN_CLIENT"
-            elif icyte_row is None:
-                row_status = "MISSING_IN_ICYTE"
-            else:
-                row_status = "MATCHED"  # Will be updated if variances found
-            
-            # Process each mapping
-            all_matched = True
-            for mapping in config['mappings']:
-                # Support both old format (single columns) and new format (formula)
-                client_formula = mapping.get('client_formula')
-                icyte_formula = mapping.get('icyte_formula')
+            # Process each mapping to generate report columns
+            for mapping_idx, mapping in enumerate(config['mappings']):
+                # Get formulas for client and ICyte sides
+                client_formula = mapping.get('client_formula', [])
+                icyte_formula = mapping.get('icyte_formula', [])
                 
-                # Fallback to old format if no formula provided
+                # Fallback to old format if needed
                 if not client_formula:
                     client_col = mapping.get('client_column')
                     if client_col:
@@ -941,73 +934,129 @@ async def perform_reconciliation(config_id: str):
                     if icyte_col:
                         icyte_formula = [{'column': icyte_col, 'operation': None}]
                 
-                # Calculate values using formula
-                client_val = evaluate_formula(client_row, client_formula, client_df.columns) if client_row is not None else None
-                icyte_val = evaluate_formula(icyte_row, icyte_formula, icyte_df.columns) if icyte_row is not None else None
+                # Create column labels from formulas
+                def create_label(formula):
+                    if not formula or len(formula) == 0:
+                        return "Unknown"
+                    cols = [step.get('column') for step in formula if step.get('column')]
+                    if len(cols) == 1:
+                        return cols[0]
+                    else:
+                        # Show formula expression
+                        expr = []
+                        for idx, step in enumerate(formula):
+                            col = step.get('column')
+                            if col:
+                                if idx == 0:
+                                    expr.append(col)
+                                else:
+                                    op = step.get('operation', '')
+                                    op_symbol = {
+                                        'add': '+',
+                                        'subtract': '-',
+                                        'multiply': '*',
+                                        'divide': '/'
+                                    }.get(op, '?')
+                                    expr.append(f"{op_symbol} {col}")
+                        return ' '.join(expr) if expr else "Unknown"
                 
-                # Calculate variance and match flag
-                variance_value = None
-                match_flag = "Unmatched"
-                
-                if client_val is None or pd.isna(client_val) or icyte_val is None or pd.isna(icyte_val):
-                    variance_value = None
-                    match_flag = "Unmatched"
-                else:
-                    try:
-                        # Keep numeric types
-                        client_str = str(client_val).replace(',', '')
-                        icyte_str = str(icyte_val).replace(',', '')
-                        client_num = float(client_str)
-                        icyte_num = float(icyte_str)
-                        variance_value = client_num - icyte_num
-                        
-                        # Check if matched with tolerance
-                        if abs(variance_value) < 0.01:
-                            match_flag = "Matched"
-                        else:
-                            match_flag = "Unmatched"
-                            all_matched = False
-                    except:
-                        variance_value = "N/A"
-                        match_flag = "Unmatched"
-                        all_matched = False
-                
-                # Create label from formula or custom label
+                # Use mapping label if provided, otherwise generate from formula
                 if mapping.get('label'):
-                    label = mapping['label']
-                elif client_formula and len(client_formula) > 0:
-                    # Create label from formula columns
-                    formula_cols = [step['column'] for step in client_formula if step.get('column')]
-                    label = ' + '.join(formula_cols) if len(formula_cols) > 1 else formula_cols[0] if formula_cols else 'Unknown'
+                    column_name = mapping['label']
                 else:
-                    label = 'Unknown'
+                    column_name = create_label(client_formula)
                 
-                # Add columns with proper naming convention
-                # Client column with prefix
-                row_data[f"Client: {label}"] = client_val if client_val is not None and not pd.isna(client_val) else None
-                # ICyte column with prefix
-                row_data[f"ICyte: {label}"] = icyte_val if icyte_val is not None and not pd.isna(icyte_val) else None
-                # Variance (Client - ICyte) [column label]
-                row_data[f"Variance (Client - ICyte) [{label}]"] = variance_value
-                # Matched flag for this pair
-                row_data[f"Matched [{label}]"] = match_flag
+                # Calculate ICyte value (ICyte_Result)
+                icyte_result = evaluate_formula(icyte_row, icyte_formula, icyte_df.columns) if icyte_row is not None else None
+                
+                # Calculate Client value (Client_Result)
+                client_result = evaluate_formula(client_row, client_formula, client_df.columns) if client_row is not None else None
+                
+                # Calculate Variance = ICyte_Result - Client_Result
+                variance = None
+                if icyte_result is not None and not pd.isna(icyte_result) and client_result is not None and not pd.isna(client_result):
+                    try:
+                        icyte_num = float(str(icyte_result).replace(',', ''))
+                        client_num = float(str(client_result).replace(',', ''))
+                        variance = icyte_num - client_num
+                    except:
+                        variance = None
+                
+                # Add columns to row data with exact 6 decimal places
+                row_data[f"ICyte_{column_name}"] = round(icyte_result, 6) if icyte_result is not None and not pd.isna(icyte_result) else None
+                row_data[f"Client_{column_name}"] = round(client_result, 6) if client_result is not None and not pd.isna(client_result) else None
+                row_data[f"Variance_{column_name}"] = round(variance, 6) if variance is not None else None
             
-            # Update row status if variances found
-            if client_row is not None and icyte_row is not None:
-                row_status = "MATCHED" if all_matched else "VARIANCE"
-            
-            row_data["RowStatus"] = row_status
             report_data.append(row_data)
         
-        # Save report as Excel
+        # Generate Excel file with conditional formatting
         report_id = str(uuid.uuid4())
-        report_excel_path = UPLOADS_DIR / f"reconciliation_report_{report_id}.xlsx"
         
-        # Create Excel file with all data
+        # Create file name with timestamp: Reconciliation_Report_<CLIENT_NAME>_<YYYYMMDD_HHMMSS>.xlsx
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # Extract client name from file or use generic name
+        client_name = "Report"
+        if client_file:
+            client_filename = client_file.get('filename', 'Report')
+            client_name = client_filename.split('.')[0].replace(' ', '_')
+        
+        report_filename = f"Reconciliation_Report_{client_name}_{timestamp}.xlsx"
+        report_excel_path = UPLOADS_DIR / report_filename
+        
+        # Create Excel file with data
         if report_data:
             report_df = pd.DataFrame(report_data)
-            # Preserve numeric types in Excel
-            report_df.to_excel(report_excel_path, index=False)
+            
+            # Write to Excel with formatting
+            with pd.ExcelWriter(report_excel_path, engine='openpyxl') as writer:
+                report_df.to_excel(writer, sheet_name='Reconciliation', index=False)
+                
+                # Get the workbook and worksheet
+                workbook = writer.book
+                worksheet = writer.sheets['Reconciliation']
+                
+                # Define fill colors for conditional formatting
+                green_fill = PatternFill(start_color="00FF00", end_color="00FF00", fill_type="solid")
+                yellow_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+                
+                # Apply conditional formatting to Variance columns
+                # Find all Variance columns
+                variance_cols = [col for col in report_df.columns if col.startswith('Variance_')]
+                
+                for col_name in variance_cols:
+                    col_idx = report_df.columns.get_loc(col_name) + 1  # Excel columns are 1-indexed
+                    col_letter = openpyxl.utils.get_column_letter(col_idx)
+                    
+                    # Apply formatting to each data row
+                    for row_idx in range(2, len(report_df) + 2):  # Start from row 2 (after header)
+                        cell = worksheet[f"{col_letter}{row_idx}"]
+                        cell_value = cell.value
+                        
+                        # Apply formatting based on variance value
+                        if cell_value is not None:
+                            try:
+                                variance_val = float(cell_value)
+                                if abs(variance_val) < 0.000001:  # Essentially 0 with 6 decimal precision
+                                    cell.fill = green_fill
+                                else:
+                                    cell.fill = yellow_fill
+                            except:
+                                pass
+                        
+                        # Format number to 6 decimal places
+                        if cell_value is not None and isinstance(cell_value, (int, float)):
+                            cell.number_format = '0.000000'
+                
+                # Format all numeric columns to 6 decimal places
+                for col_name in report_df.columns:
+                    if col_name.startswith('ICyte_') or col_name.startswith('Client_'):
+                        col_idx = report_df.columns.get_loc(col_name) + 1
+                        col_letter = openpyxl.utils.get_column_letter(col_idx)
+                        
+                        for row_idx in range(2, len(report_df) + 2):
+                            cell = worksheet[f"{col_letter}{row_idx}"]
+                            if cell.value is not None and isinstance(cell.value, (int, float)):
+                                cell.number_format = '0.000000'
         else:
             # Create empty report
             report_df = pd.DataFrame()

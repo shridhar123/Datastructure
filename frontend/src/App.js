@@ -470,6 +470,8 @@ const ReconcilePage = () => {
   const [selectedColumnMapping, setSelectedColumnMapping] = useState('');
   const [uploadMappingFile, setUploadMappingFile] = useState(null);
   const [unmatchedColumns, setUnmatchedColumns] = useState([]);
+  const [mappingName, setMappingName] = useState('');
+  const [showSaveMappingModal, setShowSaveMappingModal] = useState(false);
 
   useEffect(() => {
     fetchConversions();

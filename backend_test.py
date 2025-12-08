@@ -2494,13 +2494,13 @@ class UpdatedReconciliationTester:
         return test_files
     
     def upload_updated_test_files(self, test_files):
-        """Upload test CSV files for updated reconciliation testing"""
+        """Upload test Excel files for updated reconciliation testing"""
         print("\n=== Uploading Updated Test Files ===")
         
-        # Upload Client CSV file
+        # Upload Client Excel file
         try:
-            with open(test_files['client_csv'], 'rb') as f:
-                files = {'files': (test_files['client_csv'].name, f, 'text/csv')}
+            with open(test_files['client_excel'], 'rb') as f:
+                files = {'files': (test_files['client_excel'].name, f, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
                 data = {'file_source': 'Client'}
                 
                 response = requests.post(f"{BASE_URL}/upload-files", files=files, data=data)
@@ -2511,25 +2511,25 @@ class UpdatedReconciliationTester:
                     if uploaded_files:
                         self.client_file_id = uploaded_files[0]['id']
                         self.log_result(
-                            "Upload Client CSV File",
+                            "Upload Client Excel File",
                             True,
-                            f"Successfully uploaded client CSV: {uploaded_files[0]['filename']}",
+                            f"Successfully uploaded client Excel: {uploaded_files[0]['filename']}",
                             {"file_id": self.client_file_id, "file_type": uploaded_files[0]['file_type']}
                         )
                     else:
-                        self.log_result("Upload Client CSV File", False, "No files returned")
+                        self.log_result("Upload Client Excel File", False, "No files returned")
                         return False
                 else:
-                    self.log_result("Upload Client CSV File", False, f"Upload failed: {response.status_code} - {response.text}")
+                    self.log_result("Upload Client Excel File", False, f"Upload failed: {response.status_code} - {response.text}")
                     return False
         except Exception as e:
-            self.log_result("Upload Client CSV File", False, f"Exception: {str(e)}")
+            self.log_result("Upload Client Excel File", False, f"Exception: {str(e)}")
             return False
         
-        # Upload ICyte CSV file
+        # Upload ICyte Excel file
         try:
-            with open(test_files['icyte_csv'], 'rb') as f:
-                files = {'files': (test_files['icyte_csv'].name, f, 'text/csv')}
+            with open(test_files['icyte_excel'], 'rb') as f:
+                files = {'files': (test_files['icyte_excel'].name, f, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
                 data = {'file_source': 'ICyte'}
                 
                 response = requests.post(f"{BASE_URL}/upload-files", files=files, data=data)
@@ -2540,19 +2540,19 @@ class UpdatedReconciliationTester:
                     if uploaded_files:
                         self.icyte_file_id = uploaded_files[0]['id']
                         self.log_result(
-                            "Upload ICyte CSV File",
+                            "Upload ICyte Excel File",
                             True,
-                            f"Successfully uploaded ICyte CSV: {uploaded_files[0]['filename']}",
+                            f"Successfully uploaded ICyte Excel: {uploaded_files[0]['filename']}",
                             {"file_id": self.icyte_file_id, "file_type": uploaded_files[0]['file_type']}
                         )
                     else:
-                        self.log_result("Upload ICyte CSV File", False, "No files returned")
+                        self.log_result("Upload ICyte Excel File", False, "No files returned")
                         return False
                 else:
-                    self.log_result("Upload ICyte CSV File", False, f"Upload failed: {response.status_code} - {response.text}")
+                    self.log_result("Upload ICyte Excel File", False, f"Upload failed: {response.status_code} - {response.text}")
                     return False
         except Exception as e:
-            self.log_result("Upload ICyte CSV File", False, f"Exception: {str(e)}")
+            self.log_result("Upload ICyte Excel File", False, f"Exception: {str(e)}")
             return False
         
         return True

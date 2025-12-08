@@ -1495,7 +1495,7 @@ const ReportsPage = () => {
     }
   };
 
-  const downloadReport = async (reportId) => {
+  const downloadReport = async (reportId, reportFilename = null) => {
     const loadingToast = toast.loading('Preparing report download...');
     
     try {
@@ -1517,12 +1517,13 @@ const ReportsPage = () => {
       
       console.log('Blob created, size:', blob.size);
       
-      const filename = `Reconciliation_Report_${reportId.substring(0, 8)}.xlsx`;
+      // Use the report filename if available, otherwise use generic name
+      const filename = reportFilename || `Reconciliation_Report_${reportId.substring(0, 8)}.xlsx`;
       
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = filename; // Use .download instead of setAttribute
+      link.download = filename;
       document.body.appendChild(link);
       
       console.log('Triggering download:', filename);

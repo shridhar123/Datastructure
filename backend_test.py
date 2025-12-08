@@ -2086,6 +2086,9 @@ if __name__ == "__main__":
     print("🎯 COMBINED TEST SUMMARY")
     print("="*100)
     
+    total_column_mappings_tests = len(column_mappings_results)
+    passed_column_mappings_tests = sum(1 for result in column_mappings_results if result['success'])
+    
     total_formula_tests = len(formula_results)
     passed_formula_tests = sum(1 for result in formula_results if result['success'])
     
@@ -2098,9 +2101,10 @@ if __name__ == "__main__":
     total_reconciliation_tests = len(reconciliation_results)
     passed_reconciliation_tests = sum(1 for result in reconciliation_results if result['success'])
     
-    total_tests = total_formula_tests + total_download_tests + total_upload_tests + total_reconciliation_tests
-    total_passed = passed_formula_tests + passed_download_tests + passed_upload_tests + passed_reconciliation_tests
+    total_tests = total_column_mappings_tests + total_formula_tests + total_download_tests + total_upload_tests + total_reconciliation_tests
+    total_passed = passed_column_mappings_tests + passed_formula_tests + passed_download_tests + passed_upload_tests + passed_reconciliation_tests
     
+    print(f"Column Mappings Tests: {passed_column_mappings_tests}/{total_column_mappings_tests} passed")
     print(f"Formula Reconciliation Tests: {passed_formula_tests}/{total_formula_tests} passed")
     print(f"Download Tests: {passed_download_tests}/{total_download_tests} passed")
     print(f"File Upload Tests: {passed_upload_tests}/{total_upload_tests} passed")

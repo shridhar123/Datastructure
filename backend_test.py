@@ -2566,6 +2566,7 @@ class UpdatedReconciliationTester:
             return False
         
         # Create reconciliation configuration with formula mappings
+        # Note: Backend still requires client_column and icyte_column for validation
         config_data = {
             "client_file_id": self.client_file_id,
             "icyte_file_id": self.icyte_file_id,
@@ -2576,11 +2577,12 @@ class UpdatedReconciliationTester:
             "mappings": [
                 {
                     "label": "Net Sales Calculation",
+                    "client_column": "SalesAmount",  # Required for validation
+                    "icyte_column": "NetSales",
                     "client_formula": [
                         {"column": "SalesAmount", "operation": None},
                         {"column": "ReturnAmount", "operation": "subtract"}
-                    ],
-                    "icyte_column": "NetSales"
+                    ]
                 },
                 {
                     "label": "Return Amount",

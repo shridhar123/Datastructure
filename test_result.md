@@ -228,6 +228,22 @@ test_plan:
   test_all: false
   test_priority: "high_first"
 
+backend:
+  - task: "Updated Run Reconciliation functionality with new specifications"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated reconciliation functionality implemented with new specifications including formula mappings, Excel file generation with proper filename format, 6 decimal places formatting, conditional formatting, and reconciliation history management."
+      - working: true
+        agent: "testing"
+        comment: "✅ UPDATED RECONCILIATION TESTING COMPLETE - ALL TESTS PASSED (100% success rate). Comprehensive testing of updated Run Reconciliation functionality: 1) File Upload - Successfully uploaded Client and ICyte Excel files with proper file_source tagging. 2) Configuration - Created reconciliation configuration with formula mappings (SalesAmount - ReturnAmount → NetSales, ReturnAmount → NetReturns). 3) Reconciliation Execution - Generated report with correct filename format 'Reconciliation_Report_client_data_20251208_111509.xlsx' following pattern Reconciliation_Report_<CLIENT_NAME>_<YYYYMMDD_HHMMSS>.xlsx. 4) Report Structure - Verified new column structure with ICyte_<column>, Client_<column>, Variance_<column> format. Variance calculation confirmed correct (Variance = ICyte_Result - Client_Result). 5) Excel File Generation - Successfully downloaded 5341-byte Excel file with proper headers and format. 6) Excel Formatting - Verified number format 0.000000 for all numeric columns (conditional formatting colors not fully detectable via openpyxl but number formatting confirmed). 7) Reconciliation History - Report properly saved with metadata including filename, timestamps, and retrievable from history. All 8 tests passed confirming the updated reconciliation functionality works correctly with formula mappings, proper Excel formatting, and filename conventions."
+
   - task: "Download functionality for converted Excel files"
     implemented: true
     working: true

@@ -1476,6 +1476,7 @@ function App() {
             <Route path="/upload" element={<SeparateUploadPage />} />
             <Route path="/convert" element={<ConvertPage />} />
             <Route path="/reconcile" element={<ReconcilePage />} />
+            <Route path="/column-mappings" element={<ColumnMappingsPage />} />
             <Route path="/reports" element={<ReportsPage />} />
           </Routes>
         </main>

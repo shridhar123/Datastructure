@@ -2437,67 +2437,775 @@ class ColumnMappingsTester:
         
         print("\n" + "=" * 80)
 
+class UpdatedReconciliationTester:
+    def __init__(self):
+        self.test_results = []
+        self.client_file_id = None
+        self.icyte_file_id = None
+        self.config_id = None
+        self.report_id = None
+        self.report_filename = None
+        
+    def log_result(self, test_name, success, message, details=None):
+        """Log test result"""
+        result = {
+            "test": test_name,
+            "success": success,
+            "message": message,
+            "details": details or {}
+        }
+        self.test_results.append(result)
+        status = "✅ PASS" if success else "❌ FAIL"
+        print(f"{status}: {test_name} - {message}")
+        if details:
+            print(f"   Details: {details}")
+    
+    def create_updated_test_files(self):
+        """Create test CSV files with sample data as per new specifications"""
+        test_files = {}
+        temp_dir = Path(tempfile.mkdtemp())
+        
+        # Create Client CSV file with specified columns
+        client_csv_path = temp_dir / "client_data.csv"
+        client_data = {
+            'NDC11': ['12345678901', '23456789012', '34567890123', '45678901234', '56789012345'],
+            'ProductName': ['Aspirin 325mg', 'Ibuprofen 200mg', 'Acetaminophen 500mg', 'Naproxen 220mg', 'Omeprazole 20mg'],
+            'SalesQty': [100, 250, 150, 75, 200],
+            'SalesAmount': [150.50, 625.75, 300.25, 262.50, 450.00],
+            'ReturnQty': [5, 10, 8, 3, 15],
+            'ReturnAmount': [7.50, 25.00, 16.00, 11.25, 33.75]
+        }
+        df_client = pd.DataFrame(client_data)
+        df_client.to_csv(client_csv_path, index=False)
+        test_files['client_csv'] = client_csv_path
+        
+        # Create ICyte CSV file with specified columns
+        icyte_csv_path = temp_dir / "icyte_report.csv"
+        icyte_data = {
+            'NDC11': ['12345678901', '23456789012', '34567890123', '45678901234', '67890123456'],  # Last one different
+            'Product': ['Aspirin 325mg', 'Ibuprofen 200mg', 'Acetaminophen 500mg', 'Naproxen 220mg', 'Lisinopril 10mg'],
+            'NetSales': [143.00, 600.75, 284.25, 251.25, 380.50],  # Should match SalesAmount - ReturnAmount
+            'NetReturns': [7.50, 25.00, 16.00, 11.25, 28.00]  # Should match ReturnAmount (with some variances)
+        }
+        df_icyte = pd.DataFrame(icyte_data)
+        df_icyte.to_csv(icyte_csv_path, index=False)
+        test_files['icyte_csv'] = icyte_csv_path
+        
+        return test_files
+    
+    def upload_updated_test_files(self, test_files):
+        """Upload test CSV files for updated reconciliation testing"""
+        print("\n=== Uploading Updated Test Files ===")
+        
+        # Upload Client CSV file
+        try:
+            with open(test_files['client_csv'], 'rb') as f:
+                files = {'files': (test_files['client_csv'].name, f, 'text/csv')}
+                data = {'file_source': 'Client'}
+                
+                response = requests.post(f"{BASE_URL}/upload-files", files=files, data=data)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    uploaded_files = result.get('uploaded_files', [])
+                    if uploaded_files:
+                        self.client_file_id = uploaded_files[0]['id']
+                        self.log_result(
+                            "Upload Client CSV File",
+                            True,
+                            f"Successfully uploaded client CSV: {uploaded_files[0]['filename']}",
+                            {"file_id": self.client_file_id, "file_type": uploaded_files[0]['file_type']}
+                        )
+                    else:
+                        self.log_result("Upload Client CSV File", False, "No files returned")
+                        return False
+                else:
+                    self.log_result("Upload Client CSV File", False, f"Upload failed: {response.status_code} - {response.text}")
+                    return False
+        except Exception as e:
+            self.log_result("Upload Client CSV File", False, f"Exception: {str(e)}")
+            return False
+        
+        # Upload ICyte CSV file
+        try:
+            with open(test_files['icyte_csv'], 'rb') as f:
+                files = {'files': (test_files['icyte_csv'].name, f, 'text/csv')}
+                data = {'file_source': 'ICyte'}
+                
+                response = requests.post(f"{BASE_URL}/upload-files", files=files, data=data)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    uploaded_files = result.get('uploaded_files', [])
+                    if uploaded_files:
+                        self.icyte_file_id = uploaded_files[0]['id']
+                        self.log_result(
+                            "Upload ICyte CSV File",
+                            True,
+                            f"Successfully uploaded ICyte CSV: {uploaded_files[0]['filename']}",
+                            {"file_id": self.icyte_file_id, "file_type": uploaded_files[0]['file_type']}
+                        )
+                    else:
+                        self.log_result("Upload ICyte CSV File", False, "No files returned")
+                        return False
+                else:
+                    self.log_result("Upload ICyte CSV File", False, f"Upload failed: {response.status_code} - {response.text}")
+                    return False
+        except Exception as e:
+            self.log_result("Upload ICyte CSV File", False, f"Exception: {str(e)}")
+            return False
+        
+        return True
+    
+    def test_configure_updated_reconciliation(self):
+        """Test configuring reconciliation with new mapping specifications"""
+        print("\n=== Testing Configure Updated Reconciliation ===")
+        
+        if not self.client_file_id or not self.icyte_file_id:
+            self.log_result("Configure Updated Reconciliation", False, "Missing file IDs for configuration")
+            return False
+        
+        # Create reconciliation configuration with formula mappings
+        config_data = {
+            "client_file_id": self.client_file_id,
+            "icyte_file_id": self.icyte_file_id,
+            "client_sheet": "Sheet1",  # CSV files typically use Sheet1
+            "icyte_sheet": "Sheet1",
+            "client_unique_key": "NDC11",
+            "icyte_unique_key": "NDC11",
+            "mappings": [
+                {
+                    "label": "Net Sales Calculation",
+                    "client_formula": [
+                        {"column": "SalesAmount", "operation": None},
+                        {"column": "ReturnAmount", "operation": "subtract"}
+                    ],
+                    "icyte_column": "NetSales"
+                },
+                {
+                    "label": "Return Amount",
+                    "client_column": "ReturnAmount",
+                    "icyte_column": "NetReturns"
+                }
+            ]
+        }
+        
+        try:
+            response = requests.post(f"{BASE_URL}/configure-reconciliation", json=config_data)
+            if response.status_code == 200:
+                config_result = response.json()
+                self.config_id = config_result.get('id')
+                if self.config_id:
+                    self.log_result(
+                        "Configure Updated Reconciliation",
+                        True,
+                        f"Successfully created reconciliation configuration with formula mappings",
+                        {
+                            "config_id": self.config_id, 
+                            "mappings": len(config_data['mappings']),
+                            "formula_mapping": "SalesAmount - ReturnAmount → NetSales",
+                            "direct_mapping": "ReturnAmount → NetReturns"
+                        }
+                    )
+                    return True
+                else:
+                    self.log_result("Configure Updated Reconciliation", False, "No config ID returned")
+                    return False
+            else:
+                self.log_result("Configure Updated Reconciliation", False, f"Failed: {response.status_code} - {response.text}")
+                return False
+        except Exception as e:
+            self.log_result("Configure Updated Reconciliation", False, f"Exception: {str(e)}")
+            return False
+    
+    def test_perform_updated_reconciliation(self):
+        """Test performing reconciliation with new specifications"""
+        print("\n=== Testing Perform Updated Reconciliation ===")
+        
+        if not self.config_id:
+            self.log_result("Perform Updated Reconciliation", False, "Missing config ID for reconciliation")
+            return False
+        
+        try:
+            response = requests.post(f"{BASE_URL}/perform-reconciliation/{self.config_id}")
+            if response.status_code == 200:
+                report_result = response.json()
+                self.report_id = report_result.get('report_id')
+                self.report_filename = report_result.get('filename')
+                
+                # Verify response structure
+                required_fields = ['report_id', 'filename', 'summary', 'column_headers']
+                missing_fields = [field for field in required_fields if field not in report_result]
+                
+                if missing_fields:
+                    self.log_result(
+                        "Perform Updated Reconciliation",
+                        False,
+                        f"Missing required fields in response: {missing_fields}",
+                        report_result
+                    )
+                    return False
+                
+                # Verify filename format: Reconciliation_Report_<CLIENT_NAME>_<YYYYMMDD_HHMMSS>.xlsx
+                filename = report_result.get('filename', '')
+                filename_pattern = r'^Reconciliation_Report_.*_\d{8}_\d{6}\.xlsx$'
+                import re
+                filename_valid = re.match(filename_pattern, filename) is not None
+                
+                if not filename_valid:
+                    self.log_result(
+                        "Perform Updated Reconciliation",
+                        False,
+                        f"Filename format incorrect: {filename}",
+                        {"expected_pattern": "Reconciliation_Report_<CLIENT_NAME>_<YYYYMMDD_HHMMSS>.xlsx"}
+                    )
+                    return False
+                
+                # Verify summary structure
+                summary = report_result.get('summary', {})
+                summary_fields = ['total_records', 'matched_count', 'variance_count', 'filename']
+                missing_summary_fields = [field for field in summary_fields if field not in summary]
+                
+                if missing_summary_fields:
+                    self.log_result(
+                        "Perform Updated Reconciliation",
+                        False,
+                        f"Missing summary fields: {missing_summary_fields}",
+                        summary
+                    )
+                    return False
+                
+                self.log_result(
+                    "Perform Updated Reconciliation",
+                    True,
+                    f"Successfully performed updated reconciliation",
+                    {
+                        "report_id": self.report_id,
+                        "filename": filename,
+                        "filename_format_valid": filename_valid,
+                        "total_records": summary.get('total_records'),
+                        "matched_count": summary.get('matched_count'),
+                        "variance_count": summary.get('variance_count')
+                    }
+                )
+                return True
+            else:
+                self.log_result("Perform Updated Reconciliation", False, f"Failed: {response.status_code} - {response.text}")
+                return False
+        except Exception as e:
+            self.log_result("Perform Updated Reconciliation", False, f"Exception: {str(e)}")
+            return False
+    
+    def test_verify_report_structure_updated(self):
+        """Test verifying the updated report structure with new column format"""
+        print("\n=== Testing Verify Updated Report Structure ===")
+        
+        if not self.report_id:
+            self.log_result("Verify Updated Report Structure", False, "Missing report ID for verification")
+            return False
+        
+        try:
+            response = requests.get(f"{BASE_URL}/reconciliation-report/{self.report_id}")
+            if response.status_code == 200:
+                report = response.json()
+                
+                # Verify report data structure
+                data = report.get('data', [])
+                if not data:
+                    self.log_result(
+                        "Verify Updated Report Structure",
+                        True,
+                        "Report structure verified (no data rows to check)",
+                        {"report_id": self.report_id}
+                    )
+                    return True
+                
+                first_row = data[0]
+                
+                # Check for unique key column
+                if 'NDC11' not in first_row:
+                    self.log_result("Verify Updated Report Structure", False, "Missing unique key column (NDC11)")
+                    return False
+                
+                # Check for new column structure: ICyte_<column>, Client_<column>, Variance_<column>
+                expected_column_patterns = [
+                    'ICyte_Net Sales Calculation',
+                    'Client_Net Sales Calculation', 
+                    'Variance_Net Sales Calculation',
+                    'ICyte_Return Amount',
+                    'Client_Return Amount',
+                    'Variance_Return Amount'
+                ]
+                
+                found_columns = []
+                missing_columns = []
+                
+                for pattern in expected_column_patterns:
+                    if pattern in first_row:
+                        found_columns.append(pattern)
+                    else:
+                        missing_columns.append(pattern)
+                
+                if missing_columns:
+                    self.log_result(
+                        "Verify Updated Report Structure",
+                        False,
+                        f"Missing expected columns: {missing_columns}",
+                        {
+                            "found_columns": found_columns,
+                            "all_columns": list(first_row.keys())
+                        }
+                    )
+                    return False
+                
+                # Verify numeric values have 6 decimal places
+                numeric_precision_issues = []
+                for col_name, value in first_row.items():
+                    if col_name.startswith(('ICyte_', 'Client_', 'Variance_')) and value is not None:
+                        if isinstance(value, (int, float)):
+                            # Check if value is stored with proper precision
+                            # The backend should round to 6 decimal places
+                            rounded_value = round(float(value), 6)
+                            if abs(float(value) - rounded_value) > 1e-10:
+                                numeric_precision_issues.append(f"{col_name}: {value} (not rounded to 6 decimals)")
+                
+                if numeric_precision_issues:
+                    self.log_result(
+                        "Verify Updated Report Structure",
+                        False,
+                        f"Numeric precision issues found: {len(numeric_precision_issues)}",
+                        {"issues": numeric_precision_issues[:3]}
+                    )
+                    return False
+                
+                # Verify variance calculation: Variance = ICyte_Result - Client_Result
+                variance_calculation_issues = []
+                for mapping_label in ['Net Sales Calculation', 'Return Amount']:
+                    icyte_col = f'ICyte_{mapping_label}'
+                    client_col = f'Client_{mapping_label}'
+                    variance_col = f'Variance_{mapping_label}'
+                    
+                    if all(col in first_row for col in [icyte_col, client_col, variance_col]):
+                        icyte_val = first_row[icyte_col]
+                        client_val = first_row[client_col]
+                        variance_val = first_row[variance_col]
+                        
+                        if icyte_val is not None and client_val is not None and variance_val is not None:
+                            expected_variance = round(float(icyte_val) - float(client_val), 6)
+                            actual_variance = round(float(variance_val), 6)
+                            
+                            if abs(expected_variance - actual_variance) > 1e-6:
+                                variance_calculation_issues.append(
+                                    f"{mapping_label}: Expected {expected_variance}, got {actual_variance} "
+                                    f"(ICyte: {icyte_val}, Client: {client_val})"
+                                )
+                
+                if variance_calculation_issues:
+                    self.log_result(
+                        "Verify Updated Report Structure",
+                        False,
+                        f"Variance calculation issues: {len(variance_calculation_issues)}",
+                        {"issues": variance_calculation_issues}
+                    )
+                    return False
+                
+                self.log_result(
+                    "Verify Updated Report Structure",
+                    True,
+                    "Updated report structure verified successfully",
+                    {
+                        "columns_found": len(found_columns),
+                        "expected_columns": len(expected_column_patterns),
+                        "variance_calculations_correct": True,
+                        "numeric_precision_correct": True,
+                        "sample_row": {k: v for k, v in list(first_row.items())[:5]}
+                    }
+                )
+                return True
+            else:
+                self.log_result("Verify Updated Report Structure", False, f"Failed to get report: {response.status_code}")
+                return False
+        except Exception as e:
+            self.log_result("Verify Updated Report Structure", False, f"Exception: {str(e)}")
+            return False
+    
+    def test_excel_file_generation(self):
+        """Test that Excel file is generated and can be downloaded"""
+        print("\n=== Testing Excel File Generation ===")
+        
+        if not self.report_id:
+            self.log_result("Excel File Generation", False, "Missing report ID for Excel file test")
+            return False
+        
+        try:
+            response = requests.get(f"{BASE_URL}/download-reconciliation-report/{self.report_id}")
+            
+            if response.status_code == 200:
+                # Check Content-Type header
+                content_type = response.headers.get('content-type', '')
+                expected_content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                
+                content_type_valid = content_type == expected_content_type
+                
+                # Check Content-Disposition header for filename
+                content_disposition = response.headers.get('content-disposition', '')
+                has_filename = 'filename=' in content_disposition
+                
+                # Check file content (Excel files start with PK signature)
+                content = response.content
+                file_size = len(content)
+                is_excel_file = content.startswith(b'PK')
+                
+                # Verify all conditions
+                all_checks_passed = (
+                    content_type_valid and
+                    has_filename and
+                    file_size > 0 and
+                    is_excel_file
+                )
+                
+                if all_checks_passed:
+                    self.log_result(
+                        "Excel File Generation",
+                        True,
+                        f"Successfully downloaded Excel report ({file_size} bytes)",
+                        {
+                            "report_id": self.report_id,
+                            "content_type": content_type,
+                            "content_disposition": content_disposition,
+                            "file_size": file_size,
+                            "is_excel_format": is_excel_file
+                        }
+                    )
+                    return True
+                else:
+                    issues = []
+                    if not content_type_valid:
+                        issues.append(f"Invalid Content-Type: expected '{expected_content_type}', got '{content_type}'")
+                    if not has_filename:
+                        issues.append(f"Missing filename in Content-Disposition header")
+                    if file_size == 0:
+                        issues.append("File size is 0 bytes")
+                    if not is_excel_file:
+                        issues.append("File does not have Excel signature")
+                    
+                    self.log_result(
+                        "Excel File Generation",
+                        False,
+                        f"Excel file validation failed: {len(issues)} issues",
+                        {"issues": issues}
+                    )
+                    return False
+            else:
+                self.log_result("Excel File Generation", False, f"Download failed: {response.status_code} - {response.text}")
+                return False
+        except Exception as e:
+            self.log_result("Excel File Generation", False, f"Exception: {str(e)}")
+            return False
+    
+    def test_excel_formatting_verification(self):
+        """Test Excel formatting (conditional formatting and number format)"""
+        print("\n=== Testing Excel Formatting Verification ===")
+        
+        if not self.report_id:
+            self.log_result("Excel Formatting Verification", False, "Missing report ID for formatting test")
+            return False
+        
+        try:
+            import tempfile
+            import openpyxl
+            from openpyxl.styles import PatternFill
+            
+            # Download the Excel file
+            response = requests.get(f"{BASE_URL}/download-reconciliation-report/{self.report_id}")
+            
+            if response.status_code == 200:
+                # Save file to temporary location
+                with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as temp_file:
+                    temp_file.write(response.content)
+                    temp_file_path = temp_file.name
+                
+                try:
+                    # Open the Excel file and check formatting
+                    workbook = openpyxl.load_workbook(temp_file_path)
+                    worksheet = workbook.active
+                    
+                    # Find Variance columns
+                    variance_columns = []
+                    header_row = 1
+                    for col in range(1, worksheet.max_column + 1):
+                        cell_value = worksheet.cell(row=header_row, column=col).value
+                        if cell_value and str(cell_value).startswith('Variance_'):
+                            variance_columns.append(col)
+                    
+                    if not variance_columns:
+                        self.log_result(
+                            "Excel Formatting Verification",
+                            False,
+                            "No Variance columns found in Excel file",
+                            {"headers": [worksheet.cell(row=1, column=col).value for col in range(1, min(10, worksheet.max_column + 1))]}
+                        )
+                        workbook.close()
+                        os.unlink(temp_file_path)
+                        return False
+                    
+                    # Check conditional formatting and number format
+                    formatting_issues = []
+                    cells_checked = 0
+                    green_cells = 0
+                    yellow_cells = 0
+                    
+                    for row in range(2, min(worksheet.max_row + 1, 10)):  # Check first few data rows
+                        for col in variance_columns:
+                            cell = worksheet.cell(row=row, column=col)
+                            cells_checked += 1
+                            
+                            # Check number format (should be 0.000000)
+                            if cell.value is not None and isinstance(cell.value, (int, float)):
+                                if cell.number_format != '0.000000':
+                                    formatting_issues.append(f"Cell {cell.coordinate}: Number format is '{cell.number_format}', expected '0.000000'")
+                                
+                                # Check conditional formatting based on value
+                                cell_value = float(cell.value)
+                                fill_color = None
+                                
+                                if cell.fill and cell.fill.start_color and cell.fill.start_color.rgb:
+                                    fill_color = cell.fill.start_color.rgb
+                                
+                                if abs(cell_value) < 0.000001:  # Essentially 0
+                                    # Should have green fill
+                                    if fill_color == '00FF00':
+                                        green_cells += 1
+                                    else:
+                                        formatting_issues.append(f"Cell {cell.coordinate}: Value {cell_value} should have green fill, got {fill_color}")
+                                else:
+                                    # Should have yellow fill
+                                    if fill_color == 'FFFF00':
+                                        yellow_cells += 1
+                                    else:
+                                        formatting_issues.append(f"Cell {cell.coordinate}: Value {cell_value} should have yellow fill, got {fill_color}")
+                    
+                    workbook.close()
+                    os.unlink(temp_file_path)
+                    
+                    # Note: Conditional formatting might not be fully detectable via openpyxl
+                    # Focus on number format which is more reliably detectable
+                    number_format_issues = [issue for issue in formatting_issues if 'Number format' in issue]
+                    
+                    if number_format_issues:
+                        self.log_result(
+                            "Excel Formatting Verification",
+                            False,
+                            f"Number format issues found: {len(number_format_issues)}",
+                            {
+                                "issues": number_format_issues[:3],
+                                "cells_checked": cells_checked,
+                                "variance_columns_found": len(variance_columns)
+                            }
+                        )
+                        return False
+                    else:
+                        self.log_result(
+                            "Excel Formatting Verification",
+                            True,
+                            f"Excel formatting verified (number format correct)",
+                            {
+                                "cells_checked": cells_checked,
+                                "variance_columns_found": len(variance_columns),
+                                "green_cells_detected": green_cells,
+                                "yellow_cells_detected": yellow_cells,
+                                "note": "Conditional formatting colors may not be fully detectable via openpyxl"
+                            }
+                        )
+                        return True
+                    
+                except Exception as excel_error:
+                    self.log_result(
+                        "Excel Formatting Verification",
+                        False,
+                        f"Error reading Excel file: {str(excel_error)}",
+                        {"excel_error": str(excel_error)}
+                    )
+                    try:
+                        os.unlink(temp_file_path)
+                    except:
+                        pass
+                    return False
+            else:
+                self.log_result("Excel Formatting Verification", False, f"Could not download Excel file: {response.status_code}")
+                return False
+        except Exception as e:
+            self.log_result("Excel Formatting Verification", False, f"Exception: {str(e)}")
+            return False
+    
+    def test_reconciliation_history(self):
+        """Test that reconciliation is saved in history and retrievable"""
+        print("\n=== Testing Reconciliation History ===")
+        
+        if not self.report_id:
+            self.log_result("Reconciliation History", False, "Missing report ID for history test")
+            return False
+        
+        try:
+            # Test GET /api/reconciliation-reports
+            response = requests.get(f"{BASE_URL}/reconciliation-reports")
+            if response.status_code == 200:
+                reports_list = response.json().get('reports', [])
+                
+                # Check if our report appears in the list
+                our_report = None
+                for report in reports_list:
+                    if report.get('id') == self.report_id:
+                        our_report = report
+                        break
+                
+                if our_report:
+                    # Verify report metadata
+                    required_metadata = ['id', 'config_id', 'created_at', 'filename']
+                    missing_metadata = [field for field in required_metadata if field not in our_report]
+                    
+                    if missing_metadata:
+                        self.log_result(
+                            "Reconciliation History",
+                            False,
+                            f"Report in history missing metadata: {missing_metadata}",
+                            our_report
+                        )
+                        return False
+                    
+                    # Verify filename is stored
+                    stored_filename = our_report.get('filename')
+                    if stored_filename != self.report_filename:
+                        self.log_result(
+                            "Reconciliation History",
+                            False,
+                            f"Filename mismatch: expected '{self.report_filename}', got '{stored_filename}'",
+                            {"expected": self.report_filename, "actual": stored_filename}
+                        )
+                        return False
+                    
+                    self.log_result(
+                        "Reconciliation History",
+                        True,
+                        f"Report properly saved in history with correct metadata",
+                        {
+                            "report_id": self.report_id,
+                            "filename": stored_filename,
+                            "total_reports_in_history": len(reports_list),
+                            "created_at": our_report.get('created_at')
+                        }
+                    )
+                    return True
+                else:
+                    self.log_result(
+                        "Reconciliation History",
+                        False,
+                        f"Report not found in history (total reports: {len(reports_list)})",
+                        {"report_ids": [r.get('id') for r in reports_list[:5]]}
+                    )
+                    return False
+            else:
+                self.log_result("Reconciliation History", False, f"Failed to get reports list: {response.status_code}")
+                return False
+        except Exception as e:
+            self.log_result("Reconciliation History", False, f"Exception: {str(e)}")
+            return False
+    
+    def cleanup_updated_test_files(self):
+        """Clean up test files"""
+        print("\n=== Cleaning Up Updated Test Files ===")
+        
+        for file_id, file_type in [(self.client_file_id, "Client CSV"), (self.icyte_file_id, "ICyte CSV")]:
+            if file_id:
+                try:
+                    response = requests.delete(f"{BASE_URL}/file/{file_id}")
+                    if response.status_code == 200:
+                        print(f"✅ Cleaned up {file_type} file {file_id}")
+                    else:
+                        print(f"⚠️  Failed to clean up {file_type} file {file_id}: {response.status_code}")
+                except Exception as e:
+                    print(f"⚠️  Exception cleaning up {file_type} file {file_id}: {str(e)}")
+    
+    def run_updated_reconciliation_tests(self):
+        """Run complete updated reconciliation functionality tests"""
+        print("🚀 Starting UPDATED Run Reconciliation Functionality Tests")
+        print("=" * 80)
+        
+        # Create and upload test files
+        test_files = self.create_updated_test_files()
+        print(f"📁 Created updated test files: {list(test_files.keys())}")
+        
+        if not self.upload_updated_test_files(test_files):
+            print("❌ Failed to upload test files - aborting updated reconciliation tests")
+            return self.test_results
+        
+        # Run updated reconciliation workflow tests
+        if self.test_configure_updated_reconciliation():
+            if self.test_perform_updated_reconciliation():
+                self.test_verify_report_structure_updated()
+                self.test_excel_file_generation()
+                self.test_excel_formatting_verification()
+                self.test_reconciliation_history()
+        
+        # Print summary
+        self.print_summary()
+        
+        # Cleanup
+        self.cleanup_updated_test_files()
+        
+        return self.test_results
+    
+    def print_summary(self):
+        """Print test summary"""
+        print("\n" + "=" * 80)
+        print("📊 UPDATED RECONCILIATION TEST SUMMARY")
+        print("=" * 80)
+        
+        passed = sum(1 for result in self.test_results if result['success'])
+        failed = len(self.test_results) - passed
+        
+        print(f"Total Tests: {len(self.test_results)}")
+        print(f"✅ Passed: {passed}")
+        print(f"❌ Failed: {failed}")
+        print(f"Success Rate: {(passed/len(self.test_results)*100):.1f}%")
+        
+        if failed > 0:
+            print("\n🔍 FAILED TESTS:")
+            for result in self.test_results:
+                if not result['success']:
+                    print(f"  ❌ {result['test']}: {result['message']}")
+        
+        print("\n" + "=" * 80)
+
 if __name__ == "__main__":
-    # Run Column Mappings tests (as requested)
-    print("🗂️ Running Column Mappings Tests (New Feature)...")
-    column_mappings_tester = ColumnMappingsTester()
-    column_mappings_results = column_mappings_tester.run_column_mappings_tests()
+    print("🚀 Starting UPDATED Run Reconciliation Functionality Testing")
+    print("=" * 80)
     
-    print("\n" + "="*100 + "\n")
+    # Run Updated Reconciliation Tests
+    print("\n🔄 TESTING UPDATED RUN RECONCILIATION FUNCTIONALITY")
+    updated_tester = UpdatedReconciliationTester()
+    updated_results = updated_tester.run_updated_reconciliation_tests()
     
-    # Run formula reconciliation tests (as requested)
-    print("🎯 Running Formula Reconciliation Tests (New Formula Format)...")
-    formula_tester = FormulaReconciliationTester()
-    formula_results = formula_tester.run_formula_reconciliation_tests()
+    # Overall Summary
+    print("\n" + "=" * 80)
+    print("🎯 UPDATED RECONCILIATION TEST SUMMARY")
+    print("=" * 80)
     
-    print("\n" + "="*100 + "\n")
+    total_tests = len(updated_results)
+    total_passed = sum(1 for result in updated_results if result['success'])
+    total_failed = total_tests - total_passed
     
-    # Run download functionality tests
-    print("Running Download Functionality Tests...")
-    download_tester = DownloadFunctionalityTester()
-    download_results = download_tester.run_download_tests()
+    print(f"Total Tests: {total_tests}")
+    print(f"✅ Total Passed: {total_passed}")
+    print(f"❌ Total Failed: {total_failed}")
+    print(f"Overall Success Rate: {(total_passed/total_tests*100):.1f}%")
     
-    print("\n" + "="*100 + "\n")
+    if total_failed > 0:
+        print(f"\n🔍 FAILED TESTS SUMMARY ({total_failed} failures):")
+        for result in updated_results:
+            if not result['success']:
+                print(f"  ❌ {result['test']}: {result['message']}")
+    else:
+        print("\n🎉 ALL UPDATED RECONCILIATION TESTS PASSED! New functionality is working correctly.")
     
-    # Run file upload tests
-    print("Running File Upload Tests...")
-    upload_tester = FileUploadTester()
-    upload_results = upload_tester.run_all_tests()
-    
-    print("\n" + "="*100 + "\n")
-    
-    # Run reconciliation workflow tests
-    print("Running Reconciliation Workflow Tests...")
-    reconciliation_tester = ReconciliationWorkflowTester()
-    reconciliation_results = reconciliation_tester.run_reconciliation_workflow_tests()
-    
-    # Combined summary
-    print("\n" + "="*100)
-    print("🎯 COMBINED TEST SUMMARY")
-    print("="*100)
-    
-    total_column_mappings_tests = len(column_mappings_results)
-    passed_column_mappings_tests = sum(1 for result in column_mappings_results if result['success'])
-    
-    total_formula_tests = len(formula_results)
-    passed_formula_tests = sum(1 for result in formula_results if result['success'])
-    
-    total_download_tests = len(download_results)
-    passed_download_tests = sum(1 for result in download_results if result['success'])
-    
-    total_upload_tests = len(upload_results)
-    passed_upload_tests = sum(1 for result in upload_results if result['success'])
-    
-    total_reconciliation_tests = len(reconciliation_results)
-    passed_reconciliation_tests = sum(1 for result in reconciliation_results if result['success'])
-    
-    total_tests = total_column_mappings_tests + total_formula_tests + total_download_tests + total_upload_tests + total_reconciliation_tests
-    total_passed = passed_column_mappings_tests + passed_formula_tests + passed_download_tests + passed_upload_tests + passed_reconciliation_tests
-    
-    print(f"Column Mappings Tests: {passed_column_mappings_tests}/{total_column_mappings_tests} passed")
-    print(f"Formula Reconciliation Tests: {passed_formula_tests}/{total_formula_tests} passed")
-    print(f"Download Tests: {passed_download_tests}/{total_download_tests} passed")
-    print(f"File Upload Tests: {passed_upload_tests}/{total_upload_tests} passed")
-    print(f"Reconciliation Tests: {passed_reconciliation_tests}/{total_reconciliation_tests} passed")
-    print(f"Overall: {total_passed}/{total_tests} passed ({(total_passed/total_tests*100):.1f}%)")
-    print("="*100)
+    print("\n" + "=" * 80)

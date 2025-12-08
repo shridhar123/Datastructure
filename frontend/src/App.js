@@ -473,6 +473,7 @@ const ReconcilePage = () => {
     fetchConversions();
     fetchUploads();
     fetchTemplates();
+    fetchSavedColumnMappings();
   }, []);
 
   const fetchConversions = async () => {

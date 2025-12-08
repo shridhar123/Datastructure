@@ -2461,12 +2461,12 @@ class UpdatedReconciliationTester:
             print(f"   Details: {details}")
     
     def create_updated_test_files(self):
-        """Create test CSV files with sample data as per new specifications"""
+        """Create test Excel files with sample data as per new specifications"""
         test_files = {}
         temp_dir = Path(tempfile.mkdtemp())
         
-        # Create Client CSV file with specified columns
-        client_csv_path = temp_dir / "client_data.csv"
+        # Create Client Excel file with specified columns
+        client_excel_path = temp_dir / "client_data.xlsx"
         client_data = {
             'NDC11': ['12345678901', '23456789012', '34567890123', '45678901234', '56789012345'],
             'ProductName': ['Aspirin 325mg', 'Ibuprofen 200mg', 'Acetaminophen 500mg', 'Naproxen 220mg', 'Omeprazole 20mg'],
@@ -2476,11 +2476,11 @@ class UpdatedReconciliationTester:
             'ReturnAmount': [7.50, 25.00, 16.00, 11.25, 33.75]
         }
         df_client = pd.DataFrame(client_data)
-        df_client.to_csv(client_csv_path, index=False)
-        test_files['client_csv'] = client_csv_path
+        df_client.to_excel(client_excel_path, index=False, sheet_name='Sheet1')
+        test_files['client_excel'] = client_excel_path
         
-        # Create ICyte CSV file with specified columns
-        icyte_csv_path = temp_dir / "icyte_report.csv"
+        # Create ICyte Excel file with specified columns
+        icyte_excel_path = temp_dir / "icyte_report.xlsx"
         icyte_data = {
             'NDC11': ['12345678901', '23456789012', '34567890123', '45678901234', '67890123456'],  # Last one different
             'Product': ['Aspirin 325mg', 'Ibuprofen 200mg', 'Acetaminophen 500mg', 'Naproxen 220mg', 'Lisinopril 10mg'],
@@ -2488,8 +2488,8 @@ class UpdatedReconciliationTester:
             'NetReturns': [7.50, 25.00, 16.00, 11.25, 28.00]  # Should match ReturnAmount (with some variances)
         }
         df_icyte = pd.DataFrame(icyte_data)
-        df_icyte.to_csv(icyte_csv_path, index=False)
-        test_files['icyte_csv'] = icyte_csv_path
+        df_icyte.to_excel(icyte_excel_path, index=False, sheet_name='Sheet1')
+        test_files['icyte_excel'] = icyte_excel_path
         
         return test_files
     

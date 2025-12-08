@@ -527,6 +527,48 @@ const ReconcilePage = () => {
     }
   };
 
+  const handleSaveColumnMapping = async () => {
+    if (!mappingName.trim()) {
+      toast.error('Please enter a name for this mapping');
+      return;
+    }
+
+    if (mappings.length === 0) {
+      toast.error('Please add at least one mapping');
+      return;
+    }
+
+    // Validate mappings
+    for (let i = 0; i < mappings.length; i++) {
+      const mapping = mappings[i];
+      const clientHasColumns = mapping.client_formula?.some(step => step.column);
+      const icyteHasColumns = mapping.icyte_formula?.some(step => step.column);
+      
+      if (!clientHasColumns || !icyteHasColumns) {
+        toast.error(`Mapping #${i + 1}: Please select at least one column for both Client and ICyte sides`);
+        return;
+      }
+    }
+
+    try {
+      await axios.post(`${API}/save-column-mappings`, {
+        name: mappingName,
+        client_file_id: clientFileId,
+        icyte_file_id: icyteFileId,
+        client_sheet: clientSheet,
+        icyte_sheet: icyteSheet,
+        mappings: mappings
+      });
+      toast.success('✓ Column mapping saved successfully!');
+      setShowSaveMappingModal(false);
+      setMappingName('');
+      fetchSavedColumnMappings();
+    } catch (error) {
+      console.error('Error saving column mapping:', error);
+      toast.error('Failed to save column mapping');
+    }
+  };
+
   const loadColumnMapping = async (mappingId) => {
     try {
       const response = await axios.get(`${API}/column-mapping/${mappingId}`);
@@ -540,8 +582,8 @@ const ReconcilePage = () => {
       
       // Convert column mappings to reconciliation mappings format
       const convertedMappings = mapping.mappings.map(m => ({
-        client_formula: m.clientExpression || [{ column: '', operation: null }],
-        icyte_formula: [{ column: m.icyteColumn || '', operation: null }],
+        client_formula: m.client_formula || [{ column: '', operation: null }],
+        icyte_formula: m.icyte_formula || [{ column: '', operation: null }],
         label: m.label || ''
       }));
       

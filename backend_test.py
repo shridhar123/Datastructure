@@ -2054,6 +2054,389 @@ class FormulaReconciliationTester:
         
         print("\n" + "=" * 80)
 
+class ColumnMappingsTester:
+    def __init__(self):
+        self.test_results = []
+        self.client_file_id = None
+        self.icyte_file_id = None
+        self.mapping_id = None
+        
+    def log_result(self, test_name, success, message, details=None):
+        """Log test result"""
+        result = {
+            "test": test_name,
+            "success": success,
+            "message": message,
+            "details": details or {}
+        }
+        self.test_results.append(result)
+        status = "✅ PASS" if success else "❌ FAIL"
+        print(f"{status}: {test_name} - {message}")
+        if details:
+            print(f"   Details: {details}")
+    
+    def upload_test_data_files(self):
+        """Upload test data files for column mappings testing"""
+        print("\n=== Uploading Test Data Files ===")
+        
+        # Upload Client file
+        try:
+            with open('/tmp/test_client_data.csv', 'rb') as f:
+                files = {'files': ('test_client_data.csv', f, 'text/csv')}
+                data = {'file_source': 'Client'}
+                
+                response = requests.post(f"{BASE_URL}/upload-files", files=files, data=data)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    uploaded_files = result.get('uploaded_files', [])
+                    if uploaded_files:
+                        self.client_file_id = uploaded_files[0]['id']
+                        self.log_result(
+                            "Upload Client Test Data",
+                            True,
+                            f"Successfully uploaded client test data: {uploaded_files[0]['filename']}",
+                            {"file_id": self.client_file_id}
+                        )
+                    else:
+                        self.log_result("Upload Client Test Data", False, "No files returned")
+                        return False
+                else:
+                    self.log_result("Upload Client Test Data", False, f"Upload failed: {response.status_code}")
+                    return False
+        except Exception as e:
+            self.log_result("Upload Client Test Data", False, f"Exception: {str(e)}")
+            return False
+        
+        # Upload ICyte file
+        try:
+            with open('/tmp/test_icyte_data.csv', 'rb') as f:
+                files = {'files': ('test_icyte_data.csv', f, 'text/csv')}
+                data = {'file_source': 'ICyte'}
+                
+                response = requests.post(f"{BASE_URL}/upload-files", files=files, data=data)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    uploaded_files = result.get('uploaded_files', [])
+                    if uploaded_files:
+                        self.icyte_file_id = uploaded_files[0]['id']
+                        self.log_result(
+                            "Upload ICyte Test Data",
+                            True,
+                            f"Successfully uploaded ICyte test data: {uploaded_files[0]['filename']}",
+                            {"file_id": self.icyte_file_id}
+                        )
+                    else:
+                        self.log_result("Upload ICyte Test Data", False, "No files returned")
+                        return False
+                else:
+                    self.log_result("Upload ICyte Test Data", False, f"Upload failed: {response.status_code}")
+                    return False
+        except Exception as e:
+            self.log_result("Upload ICyte Test Data", False, f"Exception: {str(e)}")
+            return False
+        
+        return True
+    
+    def test_save_column_mappings(self):
+        """Test POST /api/save-column-mappings"""
+        print("\n=== Testing Save Column Mappings ===")
+        
+        if not self.client_file_id or not self.icyte_file_id:
+            self.log_result("Save Column Mappings", False, "Missing file IDs for testing")
+            return False
+        
+        # Create test mappings with new formula format
+        mappings_data = {
+            "name": "Test Sales Reconciliation",
+            "client_file_id": self.client_file_id,
+            "icyte_file_id": self.icyte_file_id,
+            "client_sheet": "Sheet1",
+            "icyte_sheet": "Sheet1",
+            "mappings": [
+                {
+                    "client_formula": [
+                        {"column": "SalesAmount", "operation": None},
+                        {"column": "ReturnAmount", "operation": "subtract"}
+                    ],
+                    "icyte_column": "NetSales",
+                    "label": "Net Sales Calculation"
+                },
+                {
+                    "client_formula": [
+                        {"column": "ReturnAmount", "operation": None}
+                    ],
+                    "icyte_column": "NetReturns",
+                    "label": "Return Amount"
+                }
+            ]
+        }
+        
+        try:
+            response = requests.post(f"{BASE_URL}/save-column-mappings", json=mappings_data)
+            
+            if response.status_code == 200:
+                result = response.json()
+                self.mapping_id = result.get('id')
+                
+                if self.mapping_id:
+                    self.log_result(
+                        "Save Column Mappings",
+                        True,
+                        f"Successfully saved column mappings with name '{mappings_data['name']}'",
+                        {
+                            "mapping_id": self.mapping_id,
+                            "name": mappings_data['name'],
+                            "mappings_count": len(mappings_data['mappings'])
+                        }
+                    )
+                    return True
+                else:
+                    self.log_result("Save Column Mappings", False, "No mapping ID returned")
+                    return False
+            else:
+                self.log_result("Save Column Mappings", False, f"Failed: {response.status_code} - {response.text}")
+                return False
+        except Exception as e:
+            self.log_result("Save Column Mappings", False, f"Exception: {str(e)}")
+            return False
+    
+    def test_get_all_column_mappings(self):
+        """Test GET /api/column-mappings"""
+        print("\n=== Testing Get All Column Mappings ===")
+        
+        try:
+            response = requests.get(f"{BASE_URL}/column-mappings")
+            
+            if response.status_code == 200:
+                result = response.json()
+                mappings = result.get('mappings', [])
+                
+                # Check if our saved mapping is in the list
+                our_mapping = None
+                if self.mapping_id:
+                    our_mapping = next((m for m in mappings if m.get('id') == self.mapping_id), None)
+                
+                if our_mapping:
+                    self.log_result(
+                        "Get All Column Mappings",
+                        True,
+                        f"Retrieved {len(mappings)} mappings, including our test mapping",
+                        {
+                            "total_mappings": len(mappings),
+                            "our_mapping_found": True,
+                            "our_mapping_name": our_mapping.get('name')
+                        }
+                    )
+                else:
+                    self.log_result(
+                        "Get All Column Mappings",
+                        True,
+                        f"Retrieved {len(mappings)} mappings (our test mapping not found, but endpoint works)",
+                        {"total_mappings": len(mappings)}
+                    )
+                return True
+            else:
+                self.log_result("Get All Column Mappings", False, f"Failed: {response.status_code} - {response.text}")
+                return False
+        except Exception as e:
+            self.log_result("Get All Column Mappings", False, f"Exception: {str(e)}")
+            return False
+    
+    def test_get_specific_column_mapping(self):
+        """Test GET /api/column-mapping/{mapping_id}"""
+        print("\n=== Testing Get Specific Column Mapping ===")
+        
+        if not self.mapping_id:
+            self.log_result("Get Specific Column Mapping", False, "No mapping ID available for testing")
+            return False
+        
+        try:
+            response = requests.get(f"{BASE_URL}/column-mapping/{self.mapping_id}")
+            
+            if response.status_code == 200:
+                mapping = response.json()
+                
+                # Verify the mapping structure
+                required_fields = ['id', 'name', 'client_file_id', 'icyte_file_id', 'mappings']
+                missing_fields = [field for field in required_fields if field not in mapping]
+                
+                if not missing_fields:
+                    # Verify mappings have the new formula format
+                    mappings = mapping.get('mappings', [])
+                    formula_format_valid = True
+                    
+                    for m in mappings:
+                        if 'client_formula' not in m and 'client_column' not in m:
+                            formula_format_valid = False
+                            break
+                    
+                    if formula_format_valid:
+                        self.log_result(
+                            "Get Specific Column Mapping",
+                            True,
+                            f"Successfully retrieved mapping '{mapping.get('name')}' with correct structure",
+                            {
+                                "mapping_id": self.mapping_id,
+                                "name": mapping.get('name'),
+                                "mappings_count": len(mappings),
+                                "has_formula_format": any('client_formula' in m for m in mappings)
+                            }
+                        )
+                        return True
+                    else:
+                        self.log_result(
+                            "Get Specific Column Mapping",
+                            False,
+                            "Mapping retrieved but formula format is invalid",
+                            {"mappings": mappings}
+                        )
+                        return False
+                else:
+                    self.log_result(
+                        "Get Specific Column Mapping",
+                        False,
+                        f"Missing required fields: {missing_fields}",
+                        mapping
+                    )
+                    return False
+            else:
+                self.log_result("Get Specific Column Mapping", False, f"Failed: {response.status_code} - {response.text}")
+                return False
+        except Exception as e:
+            self.log_result("Get Specific Column Mapping", False, f"Exception: {str(e)}")
+            return False
+    
+    def test_upload_column_mappings(self):
+        """Test POST /api/upload-column-mappings"""
+        print("\n=== Testing Upload Column Mappings ===")
+        
+        # Get available columns for both files
+        client_columns = ["NDC11", "Drug_Name", "SalesAmount", "ReturnAmount", "NetSales", "Manufacturer"]
+        icyte_columns = ["NDC11", "Product_Name", "NetSales", "NetReturns", "TotalRevenue", "Supplier"]
+        
+        try:
+            with open('/tmp/test_column_mapping.csv', 'rb') as f:
+                files = {'file': ('test_column_mapping.csv', f, 'text/csv')}
+                data = {
+                    'client_columns': json.dumps(client_columns),
+                    'icyte_columns': json.dumps(icyte_columns)
+                }
+                
+                response = requests.post(f"{BASE_URL}/upload-column-mappings", files=files, data=data)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    matched_mappings = result.get('matched_mappings', [])
+                    unmatched_columns = result.get('unmatched_columns', [])
+                    
+                    # Verify the response structure
+                    if 'matched_mappings' in result and 'unmatched_columns' in result:
+                        # Check if mappings have the correct formula format
+                        formula_format_valid = True
+                        for mapping in matched_mappings:
+                            if 'client_formula' not in mapping or 'icyte_column' not in mapping:
+                                formula_format_valid = False
+                                break
+                        
+                        if formula_format_valid:
+                            self.log_result(
+                                "Upload Column Mappings",
+                                True,
+                                f"Successfully parsed CSV mappings: {len(matched_mappings)} matched, {len(unmatched_columns)} unmatched",
+                                {
+                                    "matched_mappings": len(matched_mappings),
+                                    "unmatched_columns": len(unmatched_columns),
+                                    "sample_mapping": matched_mappings[0] if matched_mappings else None,
+                                    "unmatched_details": unmatched_columns
+                                }
+                            )
+                            return True
+                        else:
+                            self.log_result(
+                                "Upload Column Mappings",
+                                False,
+                                "Mappings parsed but formula format is incorrect",
+                                {"matched_mappings": matched_mappings}
+                            )
+                            return False
+                    else:
+                        self.log_result(
+                            "Upload Column Mappings",
+                            False,
+                            "Response missing required fields",
+                            result
+                        )
+                        return False
+                else:
+                    self.log_result("Upload Column Mappings", False, f"Failed: {response.status_code} - {response.text}")
+                    return False
+        except Exception as e:
+            self.log_result("Upload Column Mappings", False, f"Exception: {str(e)}")
+            return False
+    
+    def cleanup_test_files(self):
+        """Clean up uploaded test files"""
+        print("\n=== Cleaning Up Column Mappings Test Files ===")
+        
+        for file_id, file_type in [(self.client_file_id, "Client"), (self.icyte_file_id, "ICyte")]:
+            if file_id:
+                try:
+                    response = requests.delete(f"{BASE_URL}/file/{file_id}")
+                    if response.status_code == 200:
+                        print(f"✅ Cleaned up {file_type} test file {file_id}")
+                    else:
+                        print(f"⚠️  Failed to clean up {file_type} test file {file_id}: {response.status_code}")
+                except Exception as e:
+                    print(f"⚠️  Exception cleaning up {file_type} test file {file_id}: {str(e)}")
+    
+    def run_column_mappings_tests(self):
+        """Run all column mappings tests"""
+        print("🚀 Starting Column Mappings Feature Tests")
+        print("=" * 80)
+        
+        # Upload test data files
+        if not self.upload_test_data_files():
+            print("❌ Failed to upload test data files - aborting column mappings tests")
+            return self.test_results
+        
+        # Run all tests
+        self.test_save_column_mappings()
+        self.test_get_all_column_mappings()
+        self.test_get_specific_column_mapping()
+        self.test_upload_column_mappings()
+        
+        # Print summary
+        self.print_summary()
+        
+        # Cleanup
+        self.cleanup_test_files()
+        
+        return self.test_results
+    
+    def print_summary(self):
+        """Print test summary"""
+        print("\n" + "=" * 80)
+        print("📊 COLUMN MAPPINGS TEST SUMMARY")
+        print("=" * 80)
+        
+        passed = sum(1 for result in self.test_results if result['success'])
+        failed = len(self.test_results) - passed
+        
+        print(f"Total Tests: {len(self.test_results)}")
+        print(f"✅ Passed: {passed}")
+        print(f"❌ Failed: {failed}")
+        print(f"Success Rate: {(passed/len(self.test_results)*100):.1f}%")
+        
+        if failed > 0:
+            print("\n🔍 FAILED TESTS:")
+            for result in self.test_results:
+                if not result['success']:
+                    print(f"  ❌ {result['test']}: {result['message']}")
+        
+        print("\n" + "=" * 80)
+
 if __name__ == "__main__":
     # Run formula reconciliation tests (as requested)
     print("🎯 Running Formula Reconciliation Tests (New Formula Format)...")

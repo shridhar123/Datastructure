@@ -1023,33 +1023,110 @@ ColumnG / ColumnH,ICyte_Ratio,Division Example`;
           )}
         </div>
 
-        <div className="reconcile-section">
-          <h3>Load Saved Column Mappings</h3>
-          <p className="section-description">Load pre-configured column mappings from the Column Mappings page</p>
-          <Select value={selectedColumnMapping} onValueChange={(val) => {
-            setSelectedColumnMapping(val);
-            if (val) loadColumnMapping(val);
-          }}>
-            <SelectTrigger data-testid="column-mapping-select">
-              <SelectValue placeholder="Select saved column mapping" />
-            </SelectTrigger>
-            <SelectContent>
-              {savedColumnMappings.length === 0 ? (
-                <SelectItem value="none" disabled>No saved mappings available</SelectItem>
-              ) : (
-                savedColumnMappings.map((mapping) => (
-                  <SelectItem key={mapping.id} value={mapping.id}>
-                    {mapping.mappings?.length || 0} mappings - {new Date(mapping.created_at).toLocaleDateString()}
-                  </SelectItem>
-                ))
+        {/* Column Mappings Management Section */}
+        <div className="reconcile-section" style={{ borderTop: '2px solid #E5E7EB', paddingTop: '1.5rem', marginTop: '1.5rem' }}>
+          <h3>Column Mappings Management</h3>
+          
+          {/* Load Saved Mapping */}
+          <div style={{ marginBottom: '1rem' }}>
+            <h4>Load Saved Mapping</h4>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <Select value={selectedColumnMapping} onValueChange={(val) => {
+                setSelectedColumnMapping(val);
+                if (val) loadColumnMapping(val);
+              }}>
+                <SelectTrigger data-testid="column-mapping-select" style={{ flex: 1 }}>
+                  <SelectValue placeholder="Select saved column mapping" />
+                </SelectTrigger>
+                <SelectContent>
+                  {savedColumnMappings.length === 0 ? (
+                    <SelectItem value="none" disabled>No saved mappings available</SelectItem>
+                  ) : (
+                    savedColumnMappings.map((mapping) => (
+                      <SelectItem key={mapping.id} value={mapping.id}>
+                        {mapping.name || 'Untitled'} ({mapping.mappings?.length || 0} mappings)
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              {selectedColumnMapping && (
+                <Button variant="outline" size="sm" onClick={() => setSelectedColumnMapping('')}>
+                  Clear
+                </Button>
               )}
-            </SelectContent>
-          </Select>
-          {selectedColumnMapping && (
-            <Button variant="outline" size="sm" onClick={() => setSelectedColumnMapping('')} style={{ marginTop: '0.5rem' }}>
-              Clear Selection
-            </Button>
+            </div>
+          </div>
+
+          {/* Upload Mapping File */}
+          <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+            <h4>Upload Mapping File</h4>
+            <p style={{ fontSize: '0.875rem', color: '#6B7280', marginBottom: '0.75rem' }}>
+              Upload a CSV file to automatically populate mappings. Columns not found will be reported.
+            </p>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <Input
+                type="file"
+                accept=".csv"
+                onChange={(e) => setUploadMappingFile(e.target.files?.[0] || null)}
+                style={{ flex: 1, minWidth: '200px' }}
+              />
+              <Button 
+                onClick={handleUploadMapping} 
+                disabled={!uploadMappingFile || !clientSheet || !icyteSheet}
+                size="sm"
+              >
+                Upload Mapping
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={downloadMappingTemplate}
+                size="sm"
+              >
+                <Download size={16} /> Download Template
+              </Button>
+            </div>
+            {(!clientSheet || !icyteSheet) && (
+              <p style={{ fontSize: '0.75rem', color: '#DC2626', marginTop: '0.5rem' }}>
+                ⚠ Please select both Client and ICyte sheets first
+              </p>
+            )}
+          </div>
+
+          {/* Unmatched Columns Report */}
+          {unmatchedColumns.length > 0 && (
+            <div style={{ 
+              marginBottom: '1rem', 
+              padding: '1rem', 
+              backgroundColor: '#FEF3C7', 
+              borderRadius: '8px', 
+              border: '1px solid #F59E0B' 
+            }}>
+              <h4 style={{ color: '#92400E', marginBottom: '0.5rem' }}>⚠ Unmatched Columns ({unmatchedColumns.length})</h4>
+              <p style={{ fontSize: '0.875rem', color: '#92400E', marginBottom: '0.5rem' }}>
+                The following columns from your uploaded file could not be matched:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                {unmatchedColumns.map((col, idx) => (
+                  <div key={idx} style={{ fontSize: '0.875rem', color: '#92400E' }}>
+                    <strong>{col.side}:</strong> {col.column}
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
+
+          {/* Save Current Mappings */}
+          <div style={{ marginBottom: '1rem' }}>
+            <Button 
+              onClick={() => setShowSaveMappingModal(true)} 
+              disabled={mappings.length === 0}
+              variant="outline"
+              size="sm"
+            >
+              💾 Save Current Mappings
+            </Button>
+          </div>
         </div>
 
         <div className="mappings-section">

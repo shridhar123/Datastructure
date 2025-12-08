@@ -1666,7 +1666,47 @@ body {
   }
 }
 
+/* Vertical Column Mapping Layout */
+.mapping-item-vertical {
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.mapping-row-horizontal {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 1rem;
+}
+
+.mapping-column-vertical {
+  display: flex;
+  flex-direction: column;
+}
+
+.formula-builder-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.operation-selector,
+.column-selector {
+  width: 100%;
+}
+
 /* Responsive */
+@media (max-width: 968px) {
+  .mapping-row-horizontal {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
 @media (max-width: 768px) {
   .nav-links {
     gap: 1rem;
@@ -1698,5 +1738,9 @@ body {
 
   .overview-stats {
     grid-template-columns: 1fr 1fr;
+  }
+  
+  .mapping-item-vertical {
+    padding: 1rem;
   }
 }

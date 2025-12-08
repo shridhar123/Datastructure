@@ -1200,34 +1200,6 @@ async def get_column_mapping(mapping_id: str):
     except Exception as e:
         logger.error(f"Get column mapping error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
-                    'label': label
-                })
-        
-        return {
-            "matched_mappings": matched_mappings,
-            "unmatched_columns": unmatched_columns,
-            "total_rows": len(matched_mappings) + len(unmatched_columns)
-        }
-    except Exception as e:
-        logger.error(f"Upload mappings error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-                # Create label from formula columns
-                client_cols = [step['column'] for step in client_formula if step.get('column')]
-                icyte_cols = [step['column'] for step in icyte_formula if step.get('column')]
-                client_label_base = ' + '.join(client_cols) if len(client_cols) > 1 else client_cols[0] if client_cols else 'Unknown'
-                icyte_label_base = ' + '.join(icyte_cols) if len(icyte_cols) > 1 else icyte_cols[0] if icyte_cols else 'Unknown'
-            
-            column_headers["mappings"].append({
-                "client_label": f"Client: {client_label_base}",
-                "icyte_label": f"ICyte: {icyte_label_base}",
-                "variance_label": f"Variance (Client - ICyte) [{client_label_base}]",
-                "match_label": f"Matched [{client_label_base}]"
-            })
-        
-        # Create report
-        report = {
             "id": report_id,
             "config_id": config_id,
             "total_records": len(all_keys),

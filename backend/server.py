@@ -1200,33 +1200,6 @@ async def get_column_mapping(mapping_id: str):
     except Exception as e:
         logger.error(f"Get column mapping error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-            "id": report_id,
-            "config_id": config_id,
-            "total_records": len(all_keys),
-            "matched_records": matched_count,
-            "variances": variance_count,
-            "only_in_client": len(only_in_client),
-            "only_in_icyte": len(only_in_icyte),
-            "exceptions": report_data[:100],  # Limit to 100 for display
-            "report_file_path": str(report_excel_path),
-            "column_headers": column_headers,
-            "warnings": list(set(warnings)),  # Remove duplicates
-            "summary": {
-                "match_rate": f"{(matched_count / len(all_keys) * 100):.2f}%" if len(all_keys) > 0 else "0%",
-                "variance_rate": f"{(variance_count / len(all_keys) * 100):.2f}%" if len(all_keys) > 0 else "0%",
-                "total_exceptions": len(report_data)
-            },
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
-        
-        # Insert into database
-        await db.reconciliation_reports.insert_one(report.copy())
-        
-        # Return report without MongoDB ObjectId
-        return report
-    except Exception as e:
-        logger.error(f"Reconciliation error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/download-reconciliation-report/{report_id}")
 async def download_reconciliation_report(report_id: str):

@@ -1156,16 +1156,16 @@ ColumnG / ColumnH,ICyte_Ratio,Division Example`;
           </div>
 
           {mappings.map((mapping, index) => (
-            <Card key={index} className="mapping-item enhanced">
+            <Card key={index} className="mapping-item-vertical">
               <div className="mapping-header-row">
                 <h4>Mapping #{index + 1}</h4>
                 <Button variant="destructive" size="sm" onClick={() => removeMapping(index)} data-testid={`remove-mapping-btn-${index}`}>
-                  <X size={16} /> Remove
+                  <Trash2 size={16} /> Remove
                 </Button>
               </div>
 
               <div className="mapping-label-field">
-                <label>Mapping Label (Optional)</label>
+                <label style={{ fontWeight: '500', fontSize: '0.875rem' }}>Mapping Label (Optional)</label>
                 <Input
                   value={mapping.label || ''}
                   onChange={(e) => updateMapping(index, 'label', e.target.value)}
@@ -1174,61 +1174,97 @@ ColumnG / ColumnH,ICyte_Ratio,Division Example`;
                 />
               </div>
 
-              <div className="mapping-columns-row">
-                {/* Client Side */}
-                <div className="mapping-side">
-                  <h5>Client Formula</h5>
+              <div className="mapping-row-horizontal">
+                {/* Client Expression Builder */}
+                <div className="mapping-column-vertical">
+                  <h5 style={{ 
+                    fontWeight: '600', 
+                    fontSize: '0.95rem', 
+                    marginBottom: '0.75rem',
+                    color: '#1F2937',
+                    borderBottom: '2px solid #3B82F6',
+                    paddingBottom: '0.5rem'
+                  }}>
+                    Client Expression
+                  </h5>
                   
-                  <div className="formula-preview">
+                  <div className="formula-preview" style={{
+                    padding: '0.75rem',
+                    backgroundColor: '#F3F4F6',
+                    borderRadius: '6px',
+                    marginBottom: '0.75rem',
+                    fontSize: '0.875rem',
+                    fontFamily: 'monospace',
+                    color: '#374151'
+                  }}>
                     <strong>Preview:</strong> {getFormulaPreview(mapping.client_formula)}
                   </div>
 
-                  <div className="formula-builder">
+                  <div className="formula-builder-vertical">
                     {mapping.client_formula?.map((step, stepIdx) => (
-                      <div key={stepIdx} className="formula-step">
+                      <div key={stepIdx} style={{ marginBottom: '0.75rem' }}>
                         {stepIdx > 0 && (
-                          <Select 
-                            value={step.operation || ''} 
-                            onValueChange={(val) => updateFormulaStep(index, 'client', stepIdx, 'operation', val)}
-                          >
-                            <SelectTrigger className="operation-selector" data-testid={`client-op-${index}-${stepIdx}`}>
-                              <SelectValue placeholder="Op" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="add">+</SelectItem>
-                              <SelectItem value="subtract">-</SelectItem>
-                              <SelectItem value="multiply">×</SelectItem>
-                              <SelectItem value="divide">÷</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <div style={{ marginBottom: '0.5rem' }}>
+                            <label style={{ fontSize: '0.75rem', color: '#6B7280', display: 'block', marginBottom: '0.25rem' }}>
+                              Operation
+                            </label>
+                            <Select 
+                              value={step.operation || ''} 
+                              onValueChange={(val) => {
+                                updateFormulaStep(index, 'client', stepIdx, 'operation', val);
+                              }}
+                            >
+                              <SelectTrigger className="operation-selector" data-testid={`client-op-${index}-${stepIdx}`}>
+                                <SelectValue placeholder="Select Operation" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="add">+ (Addition)</SelectItem>
+                                <SelectItem value="subtract">- (Subtraction)</SelectItem>
+                                <SelectItem value="multiply">× (Multiplication)</SelectItem>
+                                <SelectItem value="divide">÷ (Division)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         )}
                         
-                        <Select 
-                          value={step.column || ''} 
-                          onValueChange={(val) => updateFormulaStep(index, 'client', stepIdx, 'column', val)}
-                        >
-                          <SelectTrigger className="column-selector" data-testid={`client-col-${index}-${stepIdx}`}>
-                            <SelectValue placeholder="Select column" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {clientSheet && clientSheets[clientSheet]?.map((col) => (
-                              <SelectItem key={col} value={col}>
-                                {col}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', color: '#6B7280', display: 'block', marginBottom: '0.25rem' }}>
+                            Client Column {stepIdx === 0 ? '' : `#${stepIdx + 1}`}
+                          </label>
+                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <Select 
+                              value={step.column || ''} 
+                              onValueChange={(val) => {
+                                updateFormulaStep(index, 'client', stepIdx, 'column', val);
+                              }}
+                            >
+                              <SelectTrigger className="column-selector" data-testid={`client-col-${index}-${stepIdx}`} style={{ flex: 1 }}>
+                                <SelectValue placeholder="Select client column" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {clientSheet && clientSheets[clientSheet]?.map((col) => (
+                                  <SelectItem key={col} value={col}>
+                                    {col}
+                                  </SelectItem>
+                                ))}
+                                {(!clientSheet || !clientSheets[clientSheet] || clientSheets[clientSheet].length === 0) && (
+                                  <SelectItem value="no-cols" disabled>No columns available</SelectItem>
+                                )}
+                              </SelectContent>
+                            </Select>
 
-                        {mapping.client_formula.length > 1 && (
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            onClick={() => removeFormulaStep(index, 'client', stepIdx)}
-                            className="remove-step-btn"
-                          >
-                            <X size={14} />
-                          </Button>
-                        )}
+                            {mapping.client_formula.length > 1 && (
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                onClick={() => removeFormulaStep(index, 'client', stepIdx)}
+                                title="Remove this column"
+                              >
+                                <X size={14} />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     ))}
                     
@@ -1237,77 +1273,70 @@ ColumnG / ColumnH,ICyte_Ratio,Division Example`;
                       variant="outline" 
                       onClick={() => addFormulaStep(index, 'client')}
                       className="add-step-btn"
+                      disabled={!clientSheet}
                     >
-                      <Plus size={14} /> Add Column
+                      <Plus size={14} /> Add Column to Expression
                     </Button>
                   </div>
                 </div>
 
-                {/* ICyte Side */}
-                <div className="mapping-side">
-                  <h5>ICyte Formula</h5>
+                {/* ICyte Column Mapping */}
+                <div className="mapping-column-vertical">
+                  <h5 style={{ 
+                    fontWeight: '600', 
+                    fontSize: '0.95rem', 
+                    marginBottom: '0.75rem',
+                    color: '#1F2937',
+                    borderBottom: '2px solid #10B981',
+                    paddingBottom: '0.5rem'
+                  }}>
+                    ICyte Column
+                  </h5>
                   
-                  <div className="formula-preview">
-                    <strong>Preview:</strong> {getFormulaPreview(mapping.icyte_formula)}
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <label style={{ fontSize: '0.875rem', color: '#374151', display: 'block', marginBottom: '0.5rem' }}>
+                      Select the ICyte column that this expression maps to:
+                    </label>
+                    
+                    {mapping.icyte_formula && mapping.icyte_formula[0] && (
+                      <Select 
+                        value={mapping.icyte_formula[0].column || ''} 
+                        onValueChange={(val) => {
+                          const newMappings = [...mappings];
+                          newMappings[index].icyte_formula = [{ column: val, operation: null }];
+                          setMappings(newMappings);
+                        }}
+                      >
+                        <SelectTrigger data-testid={`icyte-col-${index}`}>
+                          <SelectValue placeholder="Select ICyte column" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {icyteSheet && icyteSheets[icyteSheet]?.map((col) => (
+                            <SelectItem key={col} value={col}>
+                              {col}
+                            </SelectItem>
+                          ))}
+                          {(!icyteSheet || !icyteSheets[icyteSheet] || icyteSheets[icyteSheet].length === 0) && (
+                            <SelectItem value="no-cols" disabled>No columns available</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
 
-                  <div className="formula-builder">
-                    {mapping.icyte_formula?.map((step, stepIdx) => (
-                      <div key={stepIdx} className="formula-step">
-                        {stepIdx > 0 && (
-                          <Select 
-                            value={step.operation || ''} 
-                            onValueChange={(val) => updateFormulaStep(index, 'icyte', stepIdx, 'operation', val)}
-                          >
-                            <SelectTrigger className="operation-selector" data-testid={`icyte-op-${index}-${stepIdx}`}>
-                              <SelectValue placeholder="Op" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="add">+</SelectItem>
-                              <SelectItem value="subtract">-</SelectItem>
-                              <SelectItem value="multiply">×</SelectItem>
-                              <SelectItem value="divide">÷</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
-                        
-                        <Select 
-                          value={step.column || ''} 
-                          onValueChange={(val) => updateFormulaStep(index, 'icyte', stepIdx, 'column', val)}
-                        >
-                          <SelectTrigger className="column-selector" data-testid={`icyte-col-${index}-${stepIdx}`}>
-                            <SelectValue placeholder="Select column" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {icyteSheet && icyteSheets[icyteSheet]?.map((col) => (
-                              <SelectItem key={col} value={col}>
-                                {col}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-
-                        {mapping.icyte_formula.length > 1 && (
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            onClick={() => removeFormulaStep(index, 'icyte', stepIdx)}
-                            className="remove-step-btn"
-                          >
-                            <X size={14} />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                    
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => addFormulaStep(index, 'icyte')}
-                      className="add-step-btn"
-                    >
-                      <Plus size={14} /> Add Column
-                    </Button>
+                  <div style={{
+                    padding: '1rem',
+                    backgroundColor: '#F0FDF4',
+                    borderRadius: '6px',
+                    border: '1px solid #10B981',
+                    marginTop: '1rem'
+                  }}>
+                    <p style={{ fontSize: '0.875rem', color: '#065F46', marginBottom: '0.5rem' }}>
+                      <strong>Mapping Logic:</strong>
+                    </p>
+                    <p style={{ fontSize: '0.75rem', color: '#065F46' }}>
+                      The Client expression result will be compared to the selected ICyte column value during reconciliation.
+                    </p>
                   </div>
                 </div>
               </div>

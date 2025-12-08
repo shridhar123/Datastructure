@@ -2438,6 +2438,13 @@ class ColumnMappingsTester:
         print("\n" + "=" * 80)
 
 if __name__ == "__main__":
+    # Run Column Mappings tests (as requested)
+    print("🗂️ Running Column Mappings Tests (New Feature)...")
+    column_mappings_tester = ColumnMappingsTester()
+    column_mappings_results = column_mappings_tester.run_column_mappings_tests()
+    
+    print("\n" + "="*100 + "\n")
+    
     # Run formula reconciliation tests (as requested)
     print("🎯 Running Formula Reconciliation Tests (New Formula Format)...")
     formula_tester = FormulaReconciliationTester()

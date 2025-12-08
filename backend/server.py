@@ -1070,6 +1070,7 @@ async def upload_column_mappings(
     try:
         import csv
         import json
+        import re
         
         # Parse available columns
         client_cols = json.loads(client_columns)
@@ -1093,30 +1094,23 @@ async def upload_column_mappings(
             
             # Parse client expression
             # Split by operators while keeping the operators
-            import re
             tokens = re.split(r'(\s*[\+\-\*\/]\s*)', client_expr)
             tokens = [t.strip() for t in tokens if t.strip()]
             
-            client_expression = []
-            current_column = None
+            client_formula = []
             unmatched_in_expr = []
+            pending_operation = None
             
             for i, token in enumerate(tokens):
                 if token in ['+', '-', '*', '/']:
                     # Map operator symbols to operation names
                     op_map = {'+': 'add', '-': 'subtract', '*': 'multiply', '/': 'divide'}
-                    operation = op_map.get(token)
+                    pending_operation = op_map.get(token)
                 else:
                     # This is a column name
                     if token in client_cols:
-                        if i == 0:
-                            client_expression.append({'column': token, 'operation': None})
-                        else:
-                            # Add to previous step
-                            if len(client_expression) > 0:
-                                client_expression.append({'column': token, 'operation': client_expression[-1].get('next_op')})
-                            else:
-                                client_expression.append({'column': token, 'operation': None})
+                        client_formula.append({'column': token, 'operation': pending_operation})
+                        pending_operation = None
                     else:
                         unmatched_in_expr.append(('Client', token))
             
@@ -1129,10 +1123,20 @@ async def upload_column_mappings(
                 unmatched_columns.append({'side': side, 'column': col})
             
             # Only add mapping if all columns matched
-            if len(unmatched_in_expr) == 0 and icyte_col in icyte_cols and len(client_expression) > 0:
+            if len(unmatched_in_expr) == 0 and icyte_col in icyte_cols and len(client_formula) > 0:
                 matched_mappings.append({
-                    'clientExpression': client_expression,
-                    'icyteColumn': icyte_col,
+                    'client_formula': client_formula,
+                    'icyte_column': icyte_col,
+                    'label': label
+                })
+        
+        return {
+            'matched_mappings': matched_mappings,
+            'unmatched_columns': unmatched_columns
+        }
+    except Exception as e:
+        logger.error(f"Upload mappings error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @api_router.get("/column-mappings")

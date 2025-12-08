@@ -1038,7 +1038,44 @@ async def perform_reconciliation(config_id: str):
                 client_label_base = mapping['label']
                 icyte_label_base = mapping['label']
             else:
-
+                # Create label from formula columns
+                client_cols = [step['column'] for step in client_formula if step.get('column')]
+                icyte_cols = [step['column'] for step in icyte_formula if step.get('column')]
+                client_label_base = ' + '.join(client_cols) if len(client_cols) > 1 else client_cols[0] if client_cols else 'Unknown'
+                icyte_label_base = ' + '.join(icyte_cols) if len(icyte_cols) > 1 else icyte_cols[0] if icyte_cols else 'Unknown'
+            
+            column_headers["mappings"].append({
+                "client_label": f"Client: {client_label_base}",
+                "icyte_label": f"ICyte: {icyte_label_base}",
+                "variance_label": f"Variance (Client - ICyte) [{client_label_base}]",
+                "match_label": f"Matched [{client_label_base}]"
+            })
+        
+        # Create report
+        report = {
+            "id": report_id,
+            "config_id": config_id,
+            "summary": {
+                "total_records": len(report_data),
+                "matched_count": matched_count,
+                "variance_count": variance_count
+            },
+            "data": report_data,
+            "column_headers": column_headers,
+            "report_file_path": str(report_excel_path),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.reconciliation_reports.insert_one(report)
+        return {
+            "report_id": report_id,
+            "summary": report["summary"],
+            "column_headers": column_headers
+        }
+        
+    except Exception as e:
+        logger.error(f"Reconciliation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/save-column-mappings")
 async def save_column_mappings(data: dict):

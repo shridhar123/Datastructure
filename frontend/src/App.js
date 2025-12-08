@@ -910,9 +910,38 @@ const ReconcilePage = () => {
           )}
         </div>
 
+        <div className="reconcile-section">
+          <h3>Load Saved Column Mappings</h3>
+          <p className="section-description">Load pre-configured column mappings from the Column Mappings page</p>
+          <Select value={selectedColumnMapping} onValueChange={(val) => {
+            setSelectedColumnMapping(val);
+            if (val) loadColumnMapping(val);
+          }}>
+            <SelectTrigger data-testid="column-mapping-select">
+              <SelectValue placeholder="Select saved column mapping" />
+            </SelectTrigger>
+            <SelectContent>
+              {savedColumnMappings.length === 0 ? (
+                <SelectItem value="none" disabled>No saved mappings available</SelectItem>
+              ) : (
+                savedColumnMappings.map((mapping) => (
+                  <SelectItem key={mapping.id} value={mapping.id}>
+                    {mapping.mappings?.length || 0} mappings - {new Date(mapping.created_at).toLocaleDateString()}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+          {selectedColumnMapping && (
+            <Button variant="outline" size="sm" onClick={() => setSelectedColumnMapping('')} style={{ marginTop: '0.5rem' }}>
+              Clear Selection
+            </Button>
+          )}
+        </div>
+
         <div className="mappings-section">
           <div className="mappings-header">
-            <h3>Column Mappings</h3>
+            <h3>Mappings</h3>
             <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center'}}>
               <Select value={selectedTemplateId} onValueChange={(val) => { setSelectedTemplateId(val); handleLoadTemplate(val); }}>
                 <SelectTrigger style={{width: '250px'}} data-testid="template-select">

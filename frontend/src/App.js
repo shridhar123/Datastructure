@@ -619,8 +619,8 @@ const ReconcilePage = () => {
       // Convert matched mappings to reconciliation format
       const matchedMappings = response.data.matched_mappings || [];
       const convertedMappings = matchedMappings.map(m => ({
-        client_formula: m.clientExpression || [{ column: '', operation: null }],
-        icyte_formula: [{ column: m.icyteColumn || '', operation: null }],
+        client_formula: m.client_formula || [{ column: '', operation: null }],
+        icyte_formula: [{ column: m.icyte_column || '', operation: null }],
         label: m.label || ''
       }));
 

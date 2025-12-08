@@ -1062,9 +1062,23 @@ async def perform_reconciliation(config_id: str):
             report_df = pd.DataFrame()
             report_df.to_excel(report_excel_path, index=False)
         
-        # Count actual matched and variance records
-        matched_count = len([r for r in report_data if r.get("RowStatus") == "MATCHED"])
-        variance_count = len([r for r in report_data if r.get("RowStatus") == "VARIANCE"])
+        # Count matched and variance records based on variance columns
+        matched_count = 0
+        variance_count = 0
+        
+        for row in report_data:
+            has_variance = False
+            for key in row.keys():
+                if key.startswith('Variance_'):
+                    val = row[key]
+                    if val is not None and abs(val) >= 0.000001:
+                        has_variance = True
+                        break
+            
+            if has_variance:
+                variance_count += 1
+            else:
+                matched_count += 1
         
         # Build column headers info for frontend
         column_headers = {

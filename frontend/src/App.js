@@ -551,6 +551,73 @@ const ReconcilePage = () => {
     }
   };
 
+  const handleUploadMapping = async () => {
+    if (!uploadMappingFile) {
+      toast.error('Please select a file to upload');
+      return;
+    }
+
+    if (!clientSheet || !icyteSheet) {
+      toast.error('Please select both client and ICyte sheets first');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', uploadMappingFile);
+    formData.append('client_columns', JSON.stringify(clientSheets[clientSheet] || []));
+    formData.append('icyte_columns', JSON.stringify(icyteSheets[icyteSheet] || []));
+
+    try {
+      const response = await axios.post(`${API}/upload-column-mappings`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      // Convert matched mappings to reconciliation format
+      const matchedMappings = response.data.matched_mappings || [];
+      const convertedMappings = matchedMappings.map(m => ({
+        client_formula: m.clientExpression || [{ column: '', operation: null }],
+        icyte_formula: [{ column: m.icyteColumn || '', operation: null }],
+        label: m.label || ''
+      }));
+
+      setMappings([...mappings, ...convertedMappings]);
+      setUnmatchedColumns(response.data.unmatched_columns || []);
+
+      if (convertedMappings.length > 0) {
+        toast.success(`✓ ${convertedMappings.length} mappings imported successfully`);
+      }
+
+      if (response.data.unmatched_columns?.length > 0) {
+        toast.warning(`⚠ ${response.data.unmatched_columns.length} columns could not be matched`);
+      }
+
+      setUploadMappingFile(null);
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload mappings file');
+    }
+  };
+
+  const downloadMappingTemplate = () => {
+    const template = `ClientExpression,ICyteColumn,Label
+ColumnA + ColumnB,ICyte_Total,Sum Example
+ColumnC - ColumnD,ICyte_Difference,Subtraction Example
+ColumnE * ColumnF,ICyte_Product,Multiplication Example
+ColumnG / ColumnH,ICyte_Ratio,Division Example`;
+
+    const blob = new Blob([template], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'column_mappings_template.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    toast.success('✓ Template downloaded');
+  };
+
   const handleSaveTemplate = async (name, description) => {
     if (mappings.length === 0) {
       toast.error('Please add at least one mapping');

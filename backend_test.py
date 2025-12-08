@@ -3117,7 +3117,7 @@ class UpdatedReconciliationTester:
         """Clean up test files"""
         print("\n=== Cleaning Up Updated Test Files ===")
         
-        for file_id, file_type in [(self.client_file_id, "Client CSV"), (self.icyte_file_id, "ICyte CSV")]:
+        for file_id, file_type in [(self.client_file_id, "Client Excel"), (self.icyte_file_id, "ICyte Excel")]:
             if file_id:
                 try:
                     response = requests.delete(f"{BASE_URL}/file/{file_id}")

@@ -421,20 +421,34 @@ class RunReconciliationFlowTester:
                     )
                     return False
                 
-                # Verify specific calculations for first row
-                first_row = data[0]
+                # Verify specific calculations - find the row with NDC11 = '12345678901'
+                target_row = None
+                for row in data:
+                    ndc_val = str(row.get('NDC11', '')).replace('.0', '')  # Remove .0 if present
+                    if ndc_val == '12345678901':
+                        target_row = row
+                        break
+                
+                if not target_row:
+                    self.log_result(
+                        "Verify Report Data",
+                        False,
+                        "Could not find target row with NDC11 = '12345678901'",
+                        {"available_rows": [str(row.get('NDC11', '')) for row in data]}
+                    )
+                    return False
                 
                 # Row 1: ICyte NetSales (950.25) - Client (SalesAmount 1000.50 - ReturnAmount 50.25 = 950.25) = 0.0
-                client_net_sales = first_row.get("Client_Net Sales")
-                icyte_net_sales = first_row.get("ICyte_Net Sales")
-                variance_net_sales = first_row.get("Variance_Net Sales")
+                client_net_sales = target_row.get("Client_Net Sales")
+                icyte_net_sales = target_row.get("ICyte_Net Sales")
+                variance_net_sales = target_row.get("Variance_Net Sales")
                 
                 calculation_issues = []
-                if client_net_sales != 950.25:
+                if abs(client_net_sales - 950.25) > 0.01:
                     calculation_issues.append(f"Client Net Sales: expected 950.25, got {client_net_sales}")
-                if icyte_net_sales != 950.25:
+                if abs(icyte_net_sales - 950.25) > 0.01:
                     calculation_issues.append(f"ICyte Net Sales: expected 950.25, got {icyte_net_sales}")
-                if variance_net_sales != 0.0:
+                if abs(variance_net_sales - 0.0) > 0.01:
                     calculation_issues.append(f"Variance Net Sales: expected 0.0, got {variance_net_sales}")
                 
                 if calculation_issues:
@@ -442,7 +456,7 @@ class RunReconciliationFlowTester:
                         "Verify Report Data",
                         False,
                         f"Calculation verification issues: {len(calculation_issues)}",
-                        {"issues": calculation_issues, "first_row": first_row}
+                        {"issues": calculation_issues, "target_row": target_row}
                     )
                     return False
                 

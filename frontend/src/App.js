@@ -1684,80 +1684,94 @@ const ReportsPage = () => {
           )}
 
           <Card className="exceptions-card">
-            <h3>Reconciliation Details ({selectedReport.exceptions.length} records)</h3>
-            {selectedReport.exceptions.length === 0 ? (
-              <div className="no-exceptions">
-                <Check size={48} />
-                <p>All records matched successfully!</p>
-              </div>
-            ) : (
-              <div className="exceptions-table" style={{ overflowX: 'auto' }}>
-                <table>
-                  <thead>
-                    <tr>
-                      {/* Unique Key Column */}
-                      <th style={{ position: 'sticky', left: 0, background: 'white', zIndex: 1 }}>
-                        {selectedReport.column_headers?.unique_key || 'Unique Key'}
-                      </th>
-                      
-                      {/* Dynamic columns based on mappings */}
-                      {selectedReport.column_headers?.mappings?.map((mapping, idx) => (
-                        <React.Fragment key={idx}>
-                          <th>{mapping.client_label}</th>
-                          <th>{mapping.icyte_label}</th>
-                          <th>{mapping.variance_label}</th>
-                          <th>{mapping.match_label}</th>
-                        </React.Fragment>
-                      ))}
-                      
-                      {/* Row Status Column */}
-                      <th>RowStatus</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedReport.exceptions.map((record, index) => {
-                      const uniqueKeyValue = record[selectedReport.column_headers?.unique_key] || 'N/A';
-                      const rowStatus = record['RowStatus'] || 'N/A';
-                      
-                      return (
-                        <tr key={index}>
-                          {/* Unique Key */}
-                          <td style={{ position: 'sticky', left: 0, background: 'white', fontWeight: 'bold' }}>
-                            {uniqueKeyValue}
-                          </td>
-                          
-                          {/* Dynamic columns for each mapping */}
-                          {selectedReport.column_headers?.mappings?.map((mapping, idx) => {
-                            const clientVal = record[mapping.client_label];
-                            const icyteVal = record[mapping.icyte_label];
-                            const variance = record[mapping.variance_label];
-                            const matchFlag = record[mapping.match_label];
+            {(() => {
+              // Handle both old format (exceptions) and new format (data)
+              const reportData = selectedReport.data || selectedReport.exceptions || [];
+              const recordCount = reportData.length;
+              
+              return (
+                <>
+                  <h3>Reconciliation Details ({recordCount} records)</h3>
+                  {recordCount === 0 ? (
+                    <div className="no-exceptions">
+                      <Check size={48} />
+                      <p>All records matched successfully!</p>
+                    </div>
+                  ) : (
+                    <div className="exceptions-table" style={{ overflowX: 'auto' }}>
+                      <table>
+                        <thead>
+                          <tr>
+                            {/* Unique Key Column */}
+                            <th style={{ position: 'sticky', left: 0, background: 'white', zIndex: 1 }}>
+                              {selectedReport.column_headers?.unique_key || 'Unique Key'}
+                            </th>
+                            
+                            {/* Dynamic columns based on mappings */}
+                            {selectedReport.column_headers?.mappings?.map((mapping, idx) => (
+                              <React.Fragment key={idx}>
+                                {/* New format uses simple labels, old format uses prefixed labels */}
+                                <th>{mapping.icyte_label || mapping.client_label?.replace('Client:', 'ICyte:')}</th>
+                                <th>{mapping.client_label}</th>
+                                <th>{mapping.variance_label}</th>
+                                {mapping.match_label && <th>{mapping.match_label}</th>}
+                              </React.Fragment>
+                            ))}
+                            
+                            {/* Row Status Column (if present) */}
+                            {reportData[0]?.RowStatus !== undefined && <th>RowStatus</th>}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {reportData.map((record, index) => {
+                            const uniqueKeyValue = record[selectedReport.column_headers?.unique_key] || 'N/A';
+                            const rowStatus = record['RowStatus'];
                             
                             return (
-                              <React.Fragment key={idx}>
-                                <td>{clientVal !== null && clientVal !== undefined ? clientVal : '-'}</td>
-                                <td>{icyteVal !== null && icyteVal !== undefined ? icyteVal : '-'}</td>
-                                <td>
-                                  {variance !== null && variance !== undefined ? (
-                                    <span className="variance-badge">
-                                      {typeof variance === 'number' ? variance.toFixed(2) : variance}
+                              <tr key={index}>
+                                {/* Unique Key */}
+                                <td style={{ position: 'sticky', left: 0, background: 'white', fontWeight: 'bold' }}>
+                                  {uniqueKeyValue}
+                                </td>
+                                
+                                {/* Dynamic columns for each mapping */}
+                                {selectedReport.column_headers?.mappings?.map((mapping, idx) => {
+                                  // Try both new and old format column names
+                                  const icyteVal = record[mapping.icyte_label] || record[mapping.icyte_label?.replace('ICyte_', 'ICyte: ')];
+                                  const clientVal = record[mapping.client_label] || record[mapping.client_label?.replace('Client_', 'Client: ')];
+                                  const variance = record[mapping.variance_label] || record[mapping.variance_label?.replace('Variance_', 'Variance (Client - ICyte) [')];
+                                  const matchFlag = record[mapping.match_label];
+                                  
+                                  return (
+                                    <React.Fragment key={idx}>
+                                      <td>{icyteVal !== null && icyteVal !== undefined ? (typeof icyteVal === 'number' ? icyteVal.toFixed(6) : icyteVal) : '-'}</td>
+                                      <td>{clientVal !== null && clientVal !== undefined ? (typeof clientVal === 'number' ? clientVal.toFixed(6) : clientVal) : '-'}</td>
+                                      <td style={{ 
+                                        backgroundColor: variance !== null && variance !== undefined && Math.abs(variance) < 0.000001 ? '#D4EDDA' : (variance !== null && variance !== undefined ? '#FFF3CD' : 'transparent')
+                                      }}>
+                                        {variance !== null && variance !== undefined ? (
+                                          <span style={{ fontWeight: '500' }}>
+                                            {typeof variance === 'number' ? variance.toFixed(6) : variance}
+                                          </span>
+                                        ) : '-'}
+                                      </td>
+                                      {matchFlag !== undefined && (
+                                        <td>
+                                          <span className={matchFlag === 'Matched' ? 'result-badge matched' : 'result-badge unmatched'}>
+                                            {matchFlag}
+                                          </span>
+                                        </td>
+                                      )}
+                                    </React.Fragment>
+                                  );
+                                })}
+                                
+                                {/* Row Status (if present) */}
+                                {rowStatus !== undefined && (
+                                  <td>
+                                    <span className={`status-badge ${rowStatus.toLowerCase().replace('_', '-')}`}>
+                                      {rowStatus}
                                     </span>
-                                  ) : '-'}
-                                </td>
-                                <td>
-                                  <span className={matchFlag === 'Matched' ? 'result-badge matched' : 'result-badge unmatched'}>
-                                    {matchFlag}
-                                  </span>
-                                </td>
-                              </React.Fragment>
-                            );
-                          })}
-                          
-                          {/* Row Status */}
-                          <td>
-                            <span className={`status-badge ${rowStatus.toLowerCase().replace('_', '-')}`}>
-                              {rowStatus}
-                            </span>
                           </td>
                         </tr>
                       );

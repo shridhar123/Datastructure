@@ -1744,7 +1744,9 @@ const ReportsPage = () => {
                         </thead>
                         <tbody>
                           {reportData.map((record, index) => {
-                            const uniqueKeyValue = record[selectedReport.column_headers?.unique_key] || 'N/A';
+                            // Get unique key value from record
+                            const uniqueKeyCol = selectedReport.column_headers?.unique_key || Object.keys(record).find(k => k.includes('NDC') || k.includes('Key') || k.includes('ID')) || Object.keys(record)[0];
+                            const uniqueKeyValue = record[uniqueKeyCol] || 'N/A';
                             const rowStatus = record['RowStatus'];
                             
                             return (
@@ -1754,37 +1756,58 @@ const ReportsPage = () => {
                                   {uniqueKeyValue}
                                 </td>
                                 
-                                {/* Dynamic columns for each mapping */}
-                                {selectedReport.column_headers?.mappings?.map((mapping, idx) => {
-                                  // Try both new and old format column names
-                                  const icyteVal = record[mapping.icyte_label] || record[mapping.icyte_label?.replace('ICyte_', 'ICyte: ')];
-                                  const clientVal = record[mapping.client_label] || record[mapping.client_label?.replace('Client_', 'Client: ')];
-                                  const variance = record[mapping.variance_label] || record[mapping.variance_label?.replace('Variance_', 'Variance (Client - ICyte) [')];
-                                  const matchFlag = record[mapping.match_label];
-                                  
-                                  return (
-                                    <React.Fragment key={idx}>
-                                      <td>{icyteVal !== null && icyteVal !== undefined ? (typeof icyteVal === 'number' ? icyteVal.toFixed(6) : icyteVal) : '-'}</td>
-                                      <td>{clientVal !== null && clientVal !== undefined ? (typeof clientVal === 'number' ? clientVal.toFixed(6) : clientVal) : '-'}</td>
-                                      <td style={{ 
-                                        backgroundColor: variance !== null && variance !== undefined && Math.abs(variance) < 0.000001 ? '#D4EDDA' : (variance !== null && variance !== undefined ? '#FFF3CD' : 'transparent')
+                                {/* Dynamic columns based on report type */}
+                                {isOldReport ? (
+                                  // Old report format: Display all dynamic columns
+                                  dynamicColumns.map((colName, idx) => {
+                                    const value = record[colName];
+                                    // Check if this is a variance column
+                                    const isVariance = colName.toLowerCase().includes('variance');
+                                    
+                                    return (
+                                      <td key={idx} style={{
+                                        backgroundColor: isVariance && value !== null && value !== undefined && typeof value === 'number' 
+                                          ? (Math.abs(value) < 0.01 ? '#D4EDDA' : '#FFF3CD')
+                                          : 'transparent'
                                       }}>
-                                        {variance !== null && variance !== undefined ? (
-                                          <span style={{ fontWeight: '500' }}>
-                                            {typeof variance === 'number' ? variance.toFixed(6) : variance}
-                                          </span>
+                                        {value !== null && value !== undefined ? (
+                                          typeof value === 'number' ? value.toFixed(2) : value
                                         ) : '-'}
                                       </td>
-                                      {matchFlag !== undefined && (
-                                        <td>
-                                          <span className={matchFlag === 'Matched' ? 'result-badge matched' : 'result-badge unmatched'}>
-                                            {matchFlag}
-                                          </span>
+                                    );
+                                  })
+                                ) : (
+                                  // New report format: Use column_headers.mappings
+                                  selectedReport.column_headers?.mappings?.map((mapping, idx) => {
+                                    const icyteVal = record[mapping.icyte_label] || record[mapping.icyte_label?.replace('ICyte_', 'ICyte: ')];
+                                    const clientVal = record[mapping.client_label] || record[mapping.client_label?.replace('Client_', 'Client: ')];
+                                    const variance = record[mapping.variance_label] || record[mapping.variance_label?.replace('Variance_', 'Variance (Client - ICyte) [')];
+                                    const matchFlag = record[mapping.match_label];
+                                    
+                                    return (
+                                      <React.Fragment key={idx}>
+                                        <td>{icyteVal !== null && icyteVal !== undefined ? (typeof icyteVal === 'number' ? icyteVal.toFixed(6) : icyteVal) : '-'}</td>
+                                        <td>{clientVal !== null && clientVal !== undefined ? (typeof clientVal === 'number' ? clientVal.toFixed(6) : clientVal) : '-'}</td>
+                                        <td style={{ 
+                                          backgroundColor: variance !== null && variance !== undefined && Math.abs(variance) < 0.000001 ? '#D4EDDA' : (variance !== null && variance !== undefined ? '#FFF3CD' : 'transparent')
+                                        }}>
+                                          {variance !== null && variance !== undefined ? (
+                                            <span style={{ fontWeight: '500' }}>
+                                              {typeof variance === 'number' ? variance.toFixed(6) : variance}
+                                            </span>
+                                          ) : '-'}
                                         </td>
-                                      )}
-                                    </React.Fragment>
-                                  );
-                                })}
+                                        {matchFlag !== undefined && (
+                                          <td>
+                                            <span className={matchFlag === 'Matched' ? 'result-badge matched' : 'result-badge unmatched'}>
+                                              {matchFlag}
+                                            </span>
+                                          </td>
+                                        )}
+                                      </React.Fragment>
+                                    );
+                                  })
+                                )}
                                 
                                 {/* Row Status (if present) */}
                                 {rowStatus !== undefined && (

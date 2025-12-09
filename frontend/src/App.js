@@ -1689,6 +1689,19 @@ const ReportsPage = () => {
               const reportData = selectedReport.data || selectedReport.exceptions || [];
               const recordCount = reportData.length;
               
+              // Check if this is an old report without column_headers
+              const isOldReport = !selectedReport.column_headers || !selectedReport.column_headers.mappings;
+              
+              // For old reports, extract columns from the first data record
+              let dynamicColumns = [];
+              if (isOldReport && recordCount > 0) {
+                const firstRecord = reportData[0];
+                const uniqueKey = Object.keys(firstRecord).find(k => k.includes('NDC') || k.includes('Key') || k.includes('ID')) || Object.keys(firstRecord)[0];
+                
+                // Extract all columns except the unique key and RowStatus
+                dynamicColumns = Object.keys(firstRecord).filter(k => k !== uniqueKey && k !== 'RowStatus' && k !== 'status' && k !== 'details');
+              }
+              
               return (
                 <>
                   <h3>Reconciliation Details ({recordCount} records)</h3>
@@ -1707,16 +1720,23 @@ const ReportsPage = () => {
                               {selectedReport.column_headers?.unique_key || 'Unique Key'}
                             </th>
                             
-                            {/* Dynamic columns based on mappings */}
-                            {selectedReport.column_headers?.mappings?.map((mapping, idx) => (
-                              <React.Fragment key={idx}>
-                                {/* New format uses simple labels, old format uses prefixed labels */}
-                                <th>{mapping.icyte_label || mapping.client_label?.replace('Client:', 'ICyte:')}</th>
-                                <th>{mapping.client_label}</th>
-                                <th>{mapping.variance_label}</th>
-                                {mapping.match_label && <th>{mapping.match_label}</th>}
-                              </React.Fragment>
-                            ))}
+                            {/* Dynamic columns based on report type */}
+                            {isOldReport ? (
+                              // Old report format: Display all columns dynamically
+                              dynamicColumns.map((colName, idx) => (
+                                <th key={idx}>{colName}</th>
+                              ))
+                            ) : (
+                              // New report format: Use column_headers.mappings
+                              selectedReport.column_headers?.mappings?.map((mapping, idx) => (
+                                <React.Fragment key={idx}>
+                                  <th>{mapping.icyte_label || mapping.client_label?.replace('Client:', 'ICyte:')}</th>
+                                  <th>{mapping.client_label}</th>
+                                  <th>{mapping.variance_label}</th>
+                                  {mapping.match_label && <th>{mapping.match_label}</th>}
+                                </React.Fragment>
+                              ))
+                            )}
                             
                             {/* Row Status Column (if present) */}
                             {reportData[0]?.RowStatus !== undefined && <th>RowStatus</th>}

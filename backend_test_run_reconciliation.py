@@ -49,14 +49,45 @@ class RunReconciliationFlowTester:
         if details:
             print(f"   Details: {details}")
     
+    def create_test_excel_files(self):
+        """Create Excel files from CSV data for testing"""
+        # Create Client Excel file
+        client_data = {
+            'NDC11': ['12345678901', '23456789012', '34567890123'],
+            'SalesAmount': [1000.50, 2500.75, 1750.00],
+            'ReturnAmount': [50.25, 125.50, 95.00]
+        }
+        client_df = pd.DataFrame(client_data)
+        client_excel_path = '/tmp/test_client_data.xlsx'
+        client_df.to_excel(client_excel_path, index=False, sheet_name='Sheet1')
+        
+        # Create ICyte Excel file
+        icyte_data = {
+            'NDC11': ['12345678901', '23456789012', '34567890123'],
+            'NetSales': [950.25, 2375.25, 1655.00],
+            'NetReturns': [50.25, 125.50, 95.00]
+        }
+        icyte_df = pd.DataFrame(icyte_data)
+        icyte_excel_path = '/tmp/test_icyte_data.xlsx'
+        icyte_df.to_excel(icyte_excel_path, index=False, sheet_name='Sheet1')
+        
+        return client_excel_path, icyte_excel_path
+
     def test_upload_test_files(self):
         """Test Step 1: Upload test files from /tmp"""
         print("\n=== Testing Upload Test Files ===")
         
+        # Create Excel files from test data
+        try:
+            client_excel_path, icyte_excel_path = self.create_test_excel_files()
+        except Exception as e:
+            self.log_result("Create Test Excel Files", False, f"Exception creating Excel files: {str(e)}")
+            return False
+        
         # Upload Client file
         try:
-            with open('/tmp/test_client_data.csv', 'rb') as f:
-                files = {'files': ('test_client_data.csv', f, 'text/csv')}
+            with open(client_excel_path, 'rb') as f:
+                files = {'files': ('test_client_data.xlsx', f, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
                 data = {'file_source': 'Client'}
                 
                 response = requests.post(f"{BASE_URL}/upload-files", files=files, data=data)
@@ -69,7 +100,7 @@ class RunReconciliationFlowTester:
                         self.log_result(
                             "Upload Client Test File",
                             True,
-                            f"Successfully uploaded client CSV file",
+                            f"Successfully uploaded client Excel file",
                             {"file_id": self.client_file_id, "filename": uploaded_files[0]['filename']}
                         )
                     else:
@@ -84,8 +115,8 @@ class RunReconciliationFlowTester:
         
         # Upload ICyte file
         try:
-            with open('/tmp/test_icyte_data.csv', 'rb') as f:
-                files = {'files': ('test_icyte_data.csv', f, 'text/csv')}
+            with open(icyte_excel_path, 'rb') as f:
+                files = {'files': ('test_icyte_data.xlsx', f, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
                 data = {'file_source': 'ICyte'}
                 
                 response = requests.post(f"{BASE_URL}/upload-files", files=files, data=data)
@@ -98,7 +129,7 @@ class RunReconciliationFlowTester:
                         self.log_result(
                             "Upload ICyte Test File",
                             True,
-                            f"Successfully uploaded ICyte CSV file",
+                            f"Successfully uploaded ICyte Excel file",
                             {"file_id": self.icyte_file_id, "filename": uploaded_files[0]['filename']}
                         )
                     else:

@@ -67,9 +67,15 @@ class ConversionResponse(BaseModel):
     created_at: str
 
 class ColumnMapping(BaseModel):
-    client_column: str
-    icyte_column: str
-    operation: Optional[str] = None  # e.g., "multiply:2", "add:10", "subtract:5"
+    # Support both old format (single columns) and new format (formulas)
+    client_column: Optional[str] = None
+    icyte_column: Optional[str] = None
+    operation: Optional[str] = None
+    
+    # New formula format
+    client_formula: Optional[List[dict]] = None
+    icyte_formula: Optional[List[dict]] = None
+    label: Optional[str] = None
 
 class MappingTemplate(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))

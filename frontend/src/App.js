@@ -1784,8 +1784,6 @@ const ReportsPage = () => {
                 </>
               );
             })()}
-              </div>
-            )}
           </Card>
         </div>
       )}

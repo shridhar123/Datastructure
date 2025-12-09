@@ -1772,12 +1772,18 @@ const ReportsPage = () => {
                                     <span className={`status-badge ${rowStatus.toLowerCase().replace('_', '-')}`}>
                                       {rowStatus}
                                     </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                                  </td>
+                                )}
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
               </div>
             )}
           </Card>

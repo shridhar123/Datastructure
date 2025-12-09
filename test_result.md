@@ -296,6 +296,18 @@ frontend:
         agent: "testing"
         comment: "✅ COLUMN MAPPINGS UI TESTING COMPLETE - ALL SCENARIOS PASSED (100% success rate). Comprehensive testing of all UI components: 1) Column Mappings Management section - VISIBLE with proper layout and styling. 2) Load Saved Mapping dropdown - FUNCTIONAL, shows saved mappings with count display. 3) Upload Mapping File UI - FUNCTIONAL, accepts only CSV files, Upload button properly disabled without file selection, Download Template button working. 4) Column Mappings Builder - FUNCTIONAL, Add Mapping creates new cards with vertical layout. 5) Client Expression section - VISIBLE with blue border (#3B82F6), includes preview area showing formula status. 6) ICyte Column section - VISIBLE with green border (#10B981), includes mapping logic explanation box. 7) Dynamic Expression Builder - Add Column to Expression button properly disabled without client sheet selection, column dropdowns show 'No columns available' when no files selected. 8) Save Current Mappings - FUNCTIONAL, modal opens with name input, Save/Cancel buttons working. 9) Remove mapping - FUNCTIONAL, Remove button successfully removes mappings. 10) Responsive design - WORKING on smaller screens (768x1024). 11) Visual validation - Clean professional design with proper color coding confirmed. All UI elements are properly styled, functional, and follow the expected behavior patterns."
 
+  - task: "Reports page runtime error fix - Handle legacy report format compatibility"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/App.js"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL COMPATIBILITY ISSUE: Reports page has mixed results. NEW reports (with column_headers.mappings) work perfectly - 7 columns display correctly, 6 decimal places formatting verified, download functional. However, OLD reports (with column_headers: null) fail with 'Cannot read properties of undefined (reading length)' error. Only 'Unique Key' column shows, data displays as 'N/A'. Root cause: Frontend expects column_headers?.mappings?.map() but old reports use 'exceptions' array format without column_headers structure. Need backward compatibility implementation to handle both new format (data + column_headers.mappings) and old format (exceptions + null column_headers)."
+
 agent_communication:
   - agent: "testing"
     message: |
